@@ -8,7 +8,7 @@
  * such as SITE_URL / BRAND_NAME / BRAND_DESCRIPTION — set those on the new project.
  */
 
-import logoSrc from "@/assets/ciras-logo.png";
+import logoSrc from "@/assets/freigeist-logo.png";
 
 export type PaymentProvider = "stripe" | "paddle" | "none";
 
@@ -23,25 +23,25 @@ export interface BrandPayments {
 
 export const brand = {
   /** All-caps lockup used in headers, admin chrome, auth screens */
-  shortName: "CIRAS MAGAZINE & TV",
+  shortName: "FREIGEIST",
   /** Mixed-case brand name used in body copy, legal pages, RSS */
-  name: "CIRAS Magazine & TV",
+  name: "Freigeist Kongress",
   /** Browser tab + social title (also set statically in index.html) */
-  siteTitle: "CIRAS — MAGAZINE & TV for Interdisciplinary Research and Applied Science",
+  siteTitle: "Freigeist Kongress — Wahrheit. Freiheit. Netzwerk.",
   /** One-line site tagline (footer, RSS description) */
-  siteDescription: "CIRAS MAGAZINE & TV for Interdisciplinary Research and Applied Science — covering global cooperation, sustainable development, and scientific advancement.",
+  siteDescription: "Deutschlands exklusivstes Netzwerk für Bewusstsein, Gesundheit & finanzielle Souveränität. Wöchentliche Live Calls, Experten-Archiv und geschützte Community — nur auf Einladung.",
   /** Canonical production URL — used for absolute share links */
-  productionUrl: "https://magazine.ciras.org",
+  productionUrl: "https://freigeistkongress.com",
   /** Public press / contact email shown on legal pages */
-  contactEmail: "magazine@ciras.org",
+  contactEmail: "kontakt@freigeistkongress.com",
   /** Logo image (h-7 in footer, h-14 in header). Replace the file or import. */
   logoSrc,
   /** Logo alt text */
-  logoAlt: "CIRAS",
+  logoAlt: "Freigeist Kongress",
   /** External CTAs rendered in the header */
   externalLinks: {
-    genesisBond: { label: "CIRAS IIGO", url: "https://www.ciras.org/" },
-    marketplace: { label: "CIRAS INSTITUTE ", url: "https://www.ciras.org/institute/" },
+    genesisBond: { label: "Live Calls", url: "https://freigeistkongress.com/#live-calls" },
+    marketplace: { label: "Zugang anfragen", url: "https://freigeistkongress.com/#admission" },
   },
   /** Feature flags — kept off in the master project, enabled per remix */
   features: {

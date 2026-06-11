@@ -1,17 +1,35 @@
-## Plan: Update Changelog with Changes After v2.0.5
+## Goal
+Apply Freigeist Kongress branding to `src/config/brand.ts` and `index.html`, using the already-uploaded logo `src/assets/freigeist-logo.png`.
 
-Only two actual code/repo changes happened after v2.0.5 (May 28). Everything else since then has been Q&A (social media sharing, Substack, Narrareach) with no file edits.
+## Source of truth
+freigeistkongress.com — German-language exclusive network for "Bewusstsein, Gesundheit & finanzielle Souveränität" with weekly Thursday 19:00 live calls.
 
-### New entries to add at the top of `src/pages/admin/AdminChangelog.tsx`
+## Changes
 
-**Friday, May 29, 2026**
+### `src/config/brand.ts`
+- `logoSrc` import → `@/assets/freigeist-logo.png`
+- `shortName`: `"FREIGEIST"`
+- `name`: `"Freigeist Kongress"`
+- `siteTitle`: `"Freigeist Kongress — Wahrheit. Freiheit. Netzwerk."`
+- `siteDescription`: `"Deutschlands exklusivstes Netzwerk für Bewusstsein, Gesundheit & finanzielle Souveränität. Wöchentliche Live Calls, Experten-Archiv und geschützte Community — nur auf Einladung."`
+- `productionUrl`: `"https://freigeistkongress.com"`
+- `contactEmail`: `"kontakt@freigeistkongress.com"` (site only exposes a contact form; using the conventional address — flag for user override if different)
+- `logoAlt`: `"Freigeist Kongress"`
+- `externalLinks`:
+  - `genesisBond` → `{ label: "Live Calls", url: "https://freigeistkongress.com/#live-calls" }`
+  - `marketplace` → `{ label: "Zugang anfragen", url: "https://freigeistkongress.com/#admission" }`
+- `features.subscriptions` and `payments` left as-is.
 
-- **v2.0.7 — Dark Mode as Default**
-  - *Changed*: `defaultTheme` in `src/App.tsx` switched from `"light"` to `"dark"`. First-time visitors without a saved preference now see dark mode; `enableSystem` still honours an explicit OS-level light/dark setting, and any manual toggle is persisted in `localStorage`.
+### `index.html`
+- `<html lang>` → `de`
+- `<title>` → Freigeist title
+- `<meta name="description">` → Freigeist description
+- `og:title`, `og:description`, `twitter:title`, `twitter:description` → Freigeist values
+- Remove stale CIRAS `og:image` / `twitter:image` (no Freigeist OG asset provided; per head-meta guidance, omit rather than ship a placeholder)
+- Update RSS `<link>` title to `"Freigeist Kongress RSS"` (keep the existing Supabase functions URL — edge function URL is unchanged)
+- Leave `<meta name="author">` and `twitter:site` untouched unless requested
 
-- **v2.0.6 — PDF Magazine Plan Saved**
-  - *Added*: Saved the 4-layer PDF Magazine plan to `.lovable/plan.md` for later implementation. Covers (1) `magazine_issues` + `magazine_issue_posts` data model and `/admin/magazine` UI, (2) `generate-magazine-pdf` edge function (Browserless/Playwright vs `@react-pdf/renderer`), (3) activation of the dormant subscription system with Stripe + `<Paywall>` / `<PricingTable>` / `useSubscription`, and (4) `dispatch-magazine-issue` for monthly delivery to subscribers. Plan still has 4 open decisions (PDF engine, pricing model, cadence, languages).
-
-### File touched
-
-- `src/pages/admin/AdminChangelog.tsx` — insert a new `Day` object for May 29, 2026 at the top of the `days` array, containing both entries above. No other files change.
+## Notes / open items
+- Real contact email is not published on freigeistkongress.com. Plan uses `kontakt@freigeistkongress.com` as a sensible default; confirm or provide the correct address.
+- No OG share image will be set. If you want one generated, say the word.
+- Backend env vars used by edge functions (SITE_URL / BRAND_NAME / BRAND_DESCRIPTION) are not touched here — update those in project settings if RSS output should reflect the new brand.
