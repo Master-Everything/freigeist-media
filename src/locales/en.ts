@@ -176,7 +176,7 @@ const en = {
     "rssFeed": "RSS Feed",
     "copyright": "© {{year}} CIRAS INSTITUTE · All rights reserved",
     "contact": "Contact: magazine@ciras.org",
-    "tagline": "CIRAS MAGAZINE & TV for Interdisciplinary Research and Applied Science — covering global cooperation, sustainable development, and scientific advancement."
+    "tagline": "FREIGEIST MEDIA & TV for Interdisciplinary Research and Applied Science — covering global cooperation, sustainable development, and scientific advancement."
   },
   "article": {
     "share": "Share",
@@ -349,7 +349,7 @@ const en = {
     delete: "Delete"
   },
   "newsListing": {
-    "title": "CIRAS MAGAZINE & TV",
+    "title": "FREIGEIST MEDIA & TV",
     "subtitle": "See all articles in your selected category",
     "backToNews": "Back to News"
   },
