@@ -175,7 +175,7 @@ const de = {
     "rssIntegration": "RSS-Integration",
     "rssFeed": "RSS Feed",
     "copyright": "© {{year}} CIRAS INSTITUTE · Alle Rechte vorbehalten",
-    "contact": "Kontakt: magazine@ciras.org",
+    "contact": "Kontakt: info@kompassderfreiheit.com",
     "tagline": "FREIGEIST MEDIA & TV für interdisziplinäre Forschung und angewandte Wissenschaft — mit Fokus auf globale Zusammenarbeit, nachhaltige Entwicklung und wissenschaftlichen Fortschritt."
   },
   "article": {
