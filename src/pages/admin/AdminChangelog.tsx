@@ -69,7 +69,7 @@ const days: Day[] = [
         version: "2.0.1",
         title: "Final Brand Pass — CIRAS Magazine & TV",
         items: [
-          { tag: "Changed", text: "Renamed the publication from \"Media Magazine\" / \"CIRAS MEDIA MAGAZINE\" to \"CIRAS MAGAZINE & TV\" across `brand.ts`, `index.html` (title, description, og/twitter, RSS link title), locales, and the homepage headline." },
+          { tag: "Changed", text: "Renamed the publication from \"Media Magazine\" / \"CIRAS MEDIA MAGAZINE\" to \"FREIGEIST MEDIA & TV\" across `brand.ts`, `index.html` (title, description, og/twitter, RSS link title), locales, and the homepage headline." },
           { tag: "Changed", text: "Updated contact email from `press@avis.group` to `magazine@ciras.org`, footer copyright to \"© 2026 CIRAS INSTITUTE\", and the institute external link label to \"CIRAS INSTITUTE\"." },
           { tag: "Changed", text: "`brand.name` set to \"CIRAS Magazine & TV\" so Legal Notice, Privacy Policy, and RSS metadata read consistently." },
           { tag: "Added", text: "Localized footer tagline via new `footer.tagline` key in EN/DE; Footer now renders the translated tagline instead of `brand.siteDescription` (which is kept for SEO/RSS metadata)." },

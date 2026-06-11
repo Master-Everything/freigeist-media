@@ -176,7 +176,7 @@ const de = {
     "rssFeed": "RSS Feed",
     "copyright": "© {{year}} CIRAS INSTITUTE · Alle Rechte vorbehalten",
     "contact": "Kontakt: magazine@ciras.org",
-    "tagline": "CIRAS MAGAZINE & TV für interdisziplinäre Forschung und angewandte Wissenschaft — mit Fokus auf globale Zusammenarbeit, nachhaltige Entwicklung und wissenschaftlichen Fortschritt."
+    "tagline": "FREIGEIST MEDIA & TV für interdisziplinäre Forschung und angewandte Wissenschaft — mit Fokus auf globale Zusammenarbeit, nachhaltige Entwicklung und wissenschaftlichen Fortschritt."
   },
   "article": {
     "share": "Teilen",
@@ -349,7 +349,7 @@ const de = {
     delete: "Löschen"
   },
   "newsListing": {
-    "title": "CIRAS MAGAZINE & TV",
+    "title": "FREIGEIST MEDIA & TV",
     "subtitle": "Alle Artikel in der ausgewählten Kategorie anzeigen",
     "backToNews": "Zurück zu den Nachrichten"
   },
