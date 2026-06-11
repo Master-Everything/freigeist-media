@@ -1,35 +1,18 @@
-## Goal
-Apply Freigeist Kongress branding to `src/config/brand.ts` and `index.html`, using the already-uploaded logo `src/assets/freigeist-logo.png`.
+## Problem
+Das Logo `freigeist-logo.png` ist türkis (RGB ~42,128,155) auf transparentem Hintergrund. Die aktuelle CSS-Regel `filter: invert(1)` invertiert die Farbe lediglich (Ergebnis: rötlich/orange), nicht zu Weiß. Die transparenten Bereiche bleiben transparent — daher der Eindruck, das Logo sei "durchscheinend".
 
-## Source of truth
-freigeistkongress.com — German-language exclusive network for "Bewusstsein, Gesundheit & finanzielle Souveränität" with weekly Thursday 19:00 live calls.
+## Lösung
+In `src/index.css` die Regel für `.dark .logo-invertible` so anpassen, dass alle nicht-transparenten Pixel reinweiß werden — unabhängig von der Ursprungsfarbe:
 
-## Changes
+```css
+.dark .logo-invertible {
+  filter: brightness(0) invert(1);
+}
+```
 
-### `src/config/brand.ts`
-- `logoSrc` import → `@/assets/freigeist-logo.png`
-- `shortName`: `"FREIGEIST"`
-- `name`: `"Freigeist Kongress"`
-- `siteTitle`: `"Freigeist Kongress — Wahrheit. Freiheit. Netzwerk."`
-- `siteDescription`: `"Deutschlands exklusivstes Netzwerk für Bewusstsein, Gesundheit & finanzielle Souveränität. Wöchentliche Live Calls, Experten-Archiv und geschützte Community — nur auf Einladung."`
-- `productionUrl`: `"https://freigeistkongress.com"`
-- `contactEmail`: `"kontakt@freigeistkongress.com"` (site only exposes a contact form; using the conventional address — flag for user override if different)
-- `logoAlt`: `"Freigeist Kongress"`
-- `externalLinks`:
-  - `genesisBond` → `{ label: "Live Calls", url: "https://freigeistkongress.com/#live-calls" }`
-  - `marketplace` → `{ label: "Zugang anfragen", url: "https://freigeistkongress.com/#admission" }`
-- `features.subscriptions` and `payments` left as-is.
+`brightness(0)` setzt alle sichtbaren Pixel auf Schwarz, `invert(1)` macht sie dann zu Weiß. Transparenz bleibt erhalten.
 
-### `index.html`
-- `<html lang>` → `de`
-- `<title>` → Freigeist title
-- `<meta name="description">` → Freigeist description
-- `og:title`, `og:description`, `twitter:title`, `twitter:description` → Freigeist values
-- Remove stale CIRAS `og:image` / `twitter:image` (no Freigeist OG asset provided; per head-meta guidance, omit rather than ship a placeholder)
-- Update RSS `<link>` title to `"Freigeist Kongress RSS"` (keep the existing Supabase functions URL — edge function URL is unchanged)
-- Leave `<meta name="author">` and `twitter:site` untouched unless requested
+## Geänderte Dateien
+- `src/index.css` (Zeilen 549–551)
 
-## Notes / open items
-- Real contact email is not published on freigeistkongress.com. Plan uses `kontakt@freigeistkongress.com` as a sensible default; confirm or provide the correct address.
-- No OG share image will be set. If you want one generated, say the word.
-- Backend env vars used by edge functions (SITE_URL / BRAND_NAME / BRAND_DESCRIPTION) are not touched here — update those in project settings if RSS output should reflect the new brand.
+Keine weiteren Änderungen an Header, Footer oder Logo-Asset nötig.

@@ -545,9 +545,9 @@
   box-shadow: 0 0 28px hsl(190 90% 42% / 0.18), 0 0 60px hsl(190 90% 42% / 0.08);
 }
 
-/* Dark mode: invert black logo */
+/* Dark mode: force logo to pure white regardless of source color */
 .dark .logo-invertible {
-  filter: invert(1);
+  filter: brightness(0) invert(1);
 }
 
 /* Print styles for PDF export */
