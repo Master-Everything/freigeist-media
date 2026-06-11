@@ -1,0 +1,21 @@
+services:
+  images:
+    image: nginx:alpine
+    volumes:
+      - ./public-images:/usr/share/nginx/html:ro
+    ports:
+      - "8000:80"
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-http://127.0.0.1:54321}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+        VITE_SUPABASE_PROJECT_ID: ${VITE_SUPABASE_PROJECT_ID:-local}
+        VITE_IMAGE_BASE_URL: ${VITE_IMAGE_BASE_URL:-http://localhost:8000/}
+    ports:
+      - "8080:80"
+    restart: unless-stopped
