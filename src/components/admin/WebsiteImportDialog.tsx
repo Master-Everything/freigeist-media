@@ -98,7 +98,7 @@ const WebsiteImportDialog = ({ open, onOpenChange }: WebsiteImportDialogProps) =
         {!result ? (
           <>
             <Textarea
-              placeholder={"https://avis.press/f/article-slug-1\nhttps://avis.press/f/article-slug-2"}
+              placeholder={"https://freigeist.media/article-slug-1/\nhttps://freigeist.media/article-slug-2/"}
               value={urls}
               onChange={(e) => setUrls(e.target.value)}
               rows={8}
