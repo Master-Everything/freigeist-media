@@ -9,7 +9,34 @@ type Day = { date: string; entries: Entry[] };
 
 const days: Day[] = [
   {
+    date: "Tuesday, June 30, 2026",
+    entries: [
+      {
+        version: "2.1.2",
+        title: "Dark Mode Logo Fix",
+        items: [
+          { tag: "Fixed", text: "Logo in dark mode now renders pure white instead of appearing transparent. The source `freigeist-logo.png` is teal on a transparent background, so the previous `filter: invert(1)` produced a reddish tone. Updated `.dark .logo-invertible` in `src/index.css` to `filter: brightness(0) invert(1)` — `brightness(0)` flattens all visible pixels to black, `invert(1)` flips them to white, and transparency is preserved." },
+        ],
+      },
+      {
+        version: "2.1.1",
+        title: "Publisher Rename — KompassderFreiheit LLC",
+        items: [
+          { tag: "Changed", text: "Replaced all remaining occurrences of \"CIRAS Institute\" with \"KompassderFreiheit LLC\" across the Footer, Legal Notice (Impressum), and Privacy Policy (Datenschutz) translations in `src/locales/de.ts` and `src/locales/en.ts`." },
+        ],
+      },
+      {
+        version: "2.1.0",
+        title: "Footer Contact Email Update",
+        items: [
+          { tag: "Changed", text: "Footer contact email updated from `magazine@ciras.org` to `info@kompassderfreiheit.com` in both German and English locales." },
+        ],
+      },
+    ],
+  },
+  {
     date: "Friday, May 29, 2026",
+
     entries: [
       {
         version: "2.0.7",
