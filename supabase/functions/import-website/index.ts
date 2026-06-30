@@ -261,6 +261,300 @@ function extractFeaturedImage(html: string): { imageUrl: string | null; html: st
   return { imageUrl: null, html };
 }
 
+// ============================================================
+// Freigeist (WordPress + Elementor) extractor
+// ============================================================
+
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ");
+}
+
+function stripTags(s: string): string {
+  return s.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+}
+
+/** Extract the innerHTML of the first widget matching the given widget_type. */
+function extractWidgetInner(html: string, widgetType: string): string | null {
+  const re = new RegExp(
+    `<div[^>]+data-widget_type=["']${widgetType}["'][^>]*>([\\s\\S]*?)<div class=["']elementor-widget-container["']>([\\s\\S]*?)<\\/div>\\s*<\\/div>`,
+    "i",
+  );
+  const m = html.match(re);
+  return m ? m[2] : null;
+}
+
+function extractFreigeistTitle(html: string, metadata: any): string {
+  // First elementor h1 outside the post-content (the page header title)
+  const h1 = html.match(/<h1[^>]*class=["'][^"']*elementor-heading-title[^"']*["'][^>]*>([\s\S]*?)<\/h1>/i);
+  if (h1) return decodeHtmlEntities(stripTags(h1[1]));
+  return metadata?.title || metadata?.ogTitle || "Untitled";
+}
+
+function extractFreigeistExcerpt(html: string): string | null {
+  const inner = extractWidgetInner(html, "theme-post-excerpt.default");
+  if (inner) {
+    const text = decodeHtmlEntities(stripTags(inner));
+    return text || null;
+  }
+  return null;
+}
+
+function extractFreigeistDate(html: string): string | null {
+  // Look inside post-info widget for dd.mm.yyyy
+  const block = html.match(/data-widget_type=["']post-info\.default["'][\s\S]*?<\/ul>/i);
+  const haystack = block ? block[0] : html;
+  const m = haystack.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b/);
+  if (!m) return null;
+  const [_, dd, mm, yyyy] = m;
+  const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), 12, 0, 0);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** Find first elementor-widget-video, parse data-settings JSON, return video url + overlay image, and HTML with the widget removed. */
+function extractFreigeistVideo(html: string): { videoUrl: string | null; overlayImage: string | null; html: string } {
+  const widgetRe = /<div[^>]+data-widget_type=["']video\.default["'][^>]*data-settings=["']([^"']+)["'][^>]*>[\s\S]*?<\/div>\s*<\/div>/i;
+  const m = html.match(widgetRe);
+  if (!m) return { videoUrl: null, overlayImage: null, html };
+  let settings: any = {};
+  try {
+    settings = JSON.parse(decodeHtmlEntities(m[1]));
+  } catch {
+    // ignore
+  }
+  const videoUrl: string | null =
+    settings?.youtube_url || settings?.vimeo_url || settings?.dailymotion_url || null;
+  const overlayImage: string | null = settings?.image_overlay?.url || null;
+  return { videoUrl, overlayImage, html: html.replace(m[0], "") };
+}
+
+/** Locate <head> content from raw HTML. */
+function extractHead(html: string): string {
+  const m = html.match(/<head[^>]*>([\s\S]*?)<\/head>/i);
+  return m ? m[1] : "";
+}
+
+function extractOgImage(html: string): string | null {
+  const head = extractHead(html) || html;
+  const og = head.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+    || head.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+  if (og) return og[1];
+  const linkSrc = head.match(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i);
+  if (linkSrc) return linkSrc[1];
+  return null;
+}
+
+/** Isolate post-content widget HTML (balanced div). */
+function extractFreigeistPostContentScope(html: string): string {
+  const startRe = /<div[^>]+data-widget_type=["']theme-post-content\.default["'][^>]*>/i;
+  const start = html.match(startRe);
+  if (!start || start.index === undefined) return "";
+  const startIdx = start.index + start[0].length;
+  // Walk balanced divs
+  let depth = 1;
+  let i = startIdx;
+  const tagRe = /<\/?div[\s>]/gi;
+  tagRe.lastIndex = i;
+  let mt: RegExpExecArray | null;
+  while ((mt = tagRe.exec(html)) !== null) {
+    if (mt[0].startsWith("</")) {
+      depth--;
+      if (depth === 0) {
+        return html.substring(startIdx, mt.index);
+      }
+    } else {
+      depth++;
+    }
+    i = tagRe.lastIndex;
+  }
+  return html.substring(startIdx);
+}
+
+/** Choose featured image and remove it from body. */
+function extractFreigeistFeaturedImage(
+  html: string,
+  bodyHtml: string,
+  overlayImage: string | null,
+): { imageUrl: string | null; bodyHtml: string } {
+  // 1. Video overlay
+  if (overlayImage && !isIconOrPlaceholder(overlayImage)) {
+    return { imageUrl: overlayImage, bodyHtml };
+  }
+  // 2. og:image / link rel=image_src
+  const og = extractOgImage(html);
+  if (og && !isIconOrPlaceholder(og)) {
+    return { imageUrl: og, bodyHtml };
+  }
+  // 3. WordPress wp-post-image class
+  const wpPost = bodyHtml.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i)
+    || html.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i);
+  if (wpPost) {
+    const src = wpPost[0].match(/\bsrc=["']([^"']+)["']/i);
+    if (src && !isIconOrPlaceholder(src[1])) {
+      return { imageUrl: src[1], bodyHtml: bodyHtml.replace(wpPost[0], "") };
+    }
+  }
+  // 4. First real <img> in body
+  const imgMatches = [...bodyHtml.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)];
+  for (const m of imgMatches) {
+    if (!isIconOrPlaceholder(m[1])) {
+      return { imageUrl: m[1], bodyHtml: bodyHtml.replace(m[0], "") };
+    }
+  }
+  return { imageUrl: null, bodyHtml };
+}
+
+/** Render Elementor post-content scope into clean HTML. */
+function renderFreigeistBody(scope: string): string {
+  if (!scope) return "";
+
+  // Replace each elementor widget with simplified markup, preserving inner content.
+  let out = scope;
+
+  // 1. Headings: pull h1-h6 out of widget-heading containers
+  out = out.replace(
+    /<div[^>]+data-widget_type=["']heading\.default["'][^>]*>[\s\S]*?(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>)[\s\S]*?<\/div>\s*<\/div>/gi,
+    (_m, heading) => {
+      const text = decodeHtmlEntities(stripTags(heading));
+      if (!text) return "";
+      return `<h2>${text}</h2>`;
+    },
+  );
+
+  // 2. Text editor: keep inner HTML as-is
+  out = out.replace(
+    /<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>([\s\S]*?)<\/div>\s*<\/div>/gi,
+    (_m, inner) => inner,
+  );
+
+  // 3. Image widget: keep image and optional surrounding link
+  out = out.replace(
+    /<div[^>]+data-widget_type=["']image\.default["'][^>]*>[\s\S]*?(<a[^>]*>\s*<img[^>]+>\s*<\/a>|<img[^>]+>)[\s\S]*?<\/div>\s*<\/div>/gi,
+    (_m, mediaTag) => {
+      // Pick the img src
+      const srcMatch = mediaTag.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+      if (!srcMatch) return "";
+      const altMatch = mediaTag.match(/<img[^>]+alt=["']([^"']*)["']/i);
+      const alt = altMatch ? altMatch[1] : "";
+      const linkMatch = mediaTag.match(/<a[^>]+href=["']([^"']+)["'][^>]*>/i);
+      const img = `<img src="${srcMatch[1]}" alt="${alt}">`;
+      if (linkMatch && isSafeUrl(linkMatch[1])) {
+        return `<figure><a href="${linkMatch[1]}" target="_blank" rel="noopener">${img}</a></figure>`;
+      }
+      return `<figure>${img}</figure>`;
+    },
+  );
+
+  // 4. Button widget: flat link
+  out = out.replace(
+    /<div[^>]+data-widget_type=["']button\.default["'][^>]*>[\s\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>[\s\S]*?<span class=["']elementor-button-text["']>([\s\S]*?)<\/span>[\s\S]*?<\/a>[\s\S]*?<\/div>\s*<\/div>/gi,
+    (_m, href, text) => {
+      const safe = isSafeUrl(href) ? href : "#";
+      const t = decodeHtmlEntities(stripTags(text));
+      return `<p><a class="button" href="${safe}" target="_blank" rel="noopener">${t}</a></p>`;
+    },
+  );
+
+  // 5. Divider widget -> <hr>
+  out = out.replace(
+    /<div[^>]+data-widget_type=["']divider\.default["'][^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,
+    "<hr>",
+  );
+
+  // 6. Nested accordion -> flatten to h3 + inner content
+  out = out.replace(
+    /<details[^>]*>\s*<summary[^>]*>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi,
+    (_m, title, inner) => {
+      const t = decodeHtmlEntities(stripTags(title));
+      return `<h3>${t}</h3>${inner}`;
+    },
+  );
+
+  // 7. Strip leftover Elementor wrappers/divs/spans — keep their inner content
+  out = out.replace(/<div[^>]*>/gi, "");
+  out = out.replace(/<\/div>/gi, "");
+  out = out.replace(/<span[^>]*>/gi, "");
+  out = out.replace(/<\/span>/gi, "");
+
+  // 8. Strip svg blocks (Elementor icons)
+  out = out.replace(/<svg[\s\S]*?<\/svg>/gi, "");
+  // 9. Strip <script>/<style> if any sneak in
+  out = out.replace(/<script[\s\S]*?<\/script>/gi, "");
+  out = out.replace(/<style[\s\S]*?<\/style>/gi, "");
+
+  // 10. Whitelist final tags
+  const allowed = new Set([
+    "p","figure","figcaption","img","strong","em","b","i","a","h1","h2","h3","h4","h5","h6",
+    "ul","ol","li","br","hr","blockquote","iframe","video","source",
+  ]);
+  out = out.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*\/?>/gi, (match, tag) => {
+    return allowed.has(tag.toLowerCase()) ? match : "";
+  });
+
+  // 11. Collapse whitespace
+  out = out.replace(/\n{3,}/g, "\n\n");
+  out = out.replace(/\s+\n/g, "\n").trim();
+
+  return out;
+}
+
+function extractFreigeistArticle(html: string, metadata: any): {
+  title: string;
+  publishedAt: string | null;
+  excerpt: string | null;
+  bodyHtml: string;
+  featuredImageSrc: string | null;
+  firstVideoUrl: string | null;
+} {
+  const title = extractFreigeistTitle(html, metadata);
+  const excerpt = extractFreigeistExcerpt(html);
+  const publishedAt = extractFreigeistDate(html);
+
+  // Pull video info first, then strip its widget so it's not parsed as body.
+  const { videoUrl, overlayImage, html: htmlNoVideo } = extractFreigeistVideo(html);
+
+  const scope = extractFreigeistPostContentScope(htmlNoVideo);
+  let bodyHtml = renderFreigeistBody(scope);
+
+  // Convert any embed-style video links left in the body
+  const { html: bodyWithVideos, firstVideoUrl: bodyVideoUrl } = convertVideoLinks(bodyHtml);
+  bodyHtml = bodyWithVideos;
+
+  // Featured image (and remove from body so it's not duplicated)
+  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean } = extractFreigeistFeaturedImage(
+    htmlNoVideo,
+    bodyHtml,
+    overlayImage,
+  );
+  bodyHtml = bodyClean;
+
+  return {
+    title,
+    publishedAt,
+    excerpt,
+    bodyHtml,
+    featuredImageSrc,
+    firstVideoUrl: videoUrl || bodyVideoUrl,
+  };
+}
+
+function isFreigeistUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === "freigeist.media" || host.endsWith(".freigeist.media");
+  } catch {
+    return false;
+  }
+}
+
+
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
