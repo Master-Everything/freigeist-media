@@ -646,7 +646,13 @@ Deno.serve(async (req) => {
         const html = scrapeData.data?.html || scrapeData.html || "";
         const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
 
-        const title = extractTitle(html, metadata);
+        const useFreigeist = isFreigeistUrl(url);
+
+        let title: string;
+        let publishedAt: string | null = null;
+        let bodyHtml: string;
+        let featuredImageSrc: string | null = null;
+        let firstVideoUrl: string | null = null;
 
         const urlPath = new URL(url.trim()).pathname;
         let slug = urlPath.split("/").filter(Boolean).pop() || "untitled";
@@ -660,24 +666,37 @@ Deno.serve(async (req) => {
         }
         existingSlugs.add(finalSlug);
 
-        const dateMatch = html.match(
-          /(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i
-        );
-        let publishedAt: string | null = null;
-        if (dateMatch) {
-          const parsed = new Date(`${dateMatch[2]} ${dateMatch[1]}, ${dateMatch[3]}`);
-          if (!isNaN(parsed.getTime())) publishedAt = parsed.toISOString();
+        if (useFreigeist) {
+          const a = extractFreigeistArticle(html, metadata);
+          title = a.title;
+          publishedAt = a.publishedAt;
+          bodyHtml = a.bodyHtml;
+          featuredImageSrc = a.featuredImageSrc;
+          firstVideoUrl = a.firstVideoUrl;
+        } else {
+          title = extractTitle(html, metadata);
+
+          const dateMatch = html.match(
+            /(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i
+          );
+          if (dateMatch) {
+            const parsed = new Date(`${dateMatch[2]} ${dateMatch[1]}, ${dateMatch[3]}`);
+            if (!isNaN(parsed.getTime())) publishedAt = parsed.toISOString();
+          }
+
+          bodyHtml = extractBodyContent(html);
+          bodyHtml = truncateAtRecentPosts(bodyHtml);
+          bodyHtml = cleanHtml(bodyHtml);
+
+          const { html: bodyWithVideos, firstVideoUrl: legacyVideoUrl } = convertVideoLinks(bodyHtml);
+          bodyHtml = bodyWithVideos;
+          firstVideoUrl = legacyVideoUrl;
+
+          const { imageUrl: legacyFeatured, html: bodyWithoutFeatured } = extractFeaturedImage(bodyHtml);
+          featuredImageSrc = legacyFeatured;
+          bodyHtml = bodyWithoutFeatured;
         }
 
-        let bodyHtml = extractBodyContent(html);
-        bodyHtml = truncateAtRecentPosts(bodyHtml);
-        bodyHtml = cleanHtml(bodyHtml);
-
-        const { html: bodyWithVideos, firstVideoUrl } = convertVideoLinks(bodyHtml);
-        bodyHtml = bodyWithVideos;
-
-        const { imageUrl: featuredImageSrc, html: bodyWithoutFeatured } = extractFeaturedImage(bodyHtml);
-        bodyHtml = bodyWithoutFeatured;
 
         // Collect image URLs, normalize to deduplicate resized variants
         const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
