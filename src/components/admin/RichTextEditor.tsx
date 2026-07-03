@@ -265,6 +265,9 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
       Figure,
       Figcaption,
       Video,
+      Accordion,
+      AccordionItem,
+      SpeakerProfile,
       Link.configure({
         openOnClick: false,
         protocols: ["http", "https", "mailto", "tel"],
