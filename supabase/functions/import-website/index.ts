@@ -861,6 +861,7 @@ Deno.serve(async (req) => {
           .insert({
             title,
             slug: finalSlug,
+            subtitle,
             content: bodyHtml,
             status: "draft",
             published_at: publishedAt,
