@@ -578,6 +578,9 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
           <MenuButton onClick={addLink} pressed={editor.isActive("link")} title="Add Link">
             <LinkIcon size={14} />
           </MenuButton>
+          <MenuButton onClick={addCtaButton} title="CTA-Button einfügen">
+            <Sparkles size={14} />
+          </MenuButton>
           <MenuButton onClick={handleImageUploadClick} title="Upload Image">
             <Upload size={14} />
           </MenuButton>
