@@ -3,6 +3,8 @@ import type { EditorView } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import { Figure, Figcaption } from "./extensions/FigureExtension";
 import { Video } from "./extensions/VideoExtension";
+import { Accordion, AccordionItem } from "./extensions/AccordionExtension";
+import { SpeakerProfile } from "./extensions/SpeakerProfileExtension";
 import { getEmbedUrl } from "@/lib/videoUtils";
 
 import Link from "@tiptap/extension-link";
