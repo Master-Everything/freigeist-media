@@ -376,22 +376,18 @@ function extractFreigeistPostContentScope(html: string): string {
   return html.substring(startIdx);
 }
 
-/** Choose featured image and remove it from body. */
+/** Choose featured image and remove it from body. Priority: og:image (WordPress featured) → wp-post-image → video overlay → first body image. */
 function extractFreigeistFeaturedImage(
   html: string,
   bodyHtml: string,
   overlayImage: string | null,
 ): { imageUrl: string | null; bodyHtml: string } {
-  // 1. Video overlay
-  if (overlayImage && !isIconOrPlaceholder(overlayImage)) {
-    return { imageUrl: overlayImage, bodyHtml };
-  }
-  // 2. og:image / link rel=image_src
+  // 1. og:image / link rel=image_src (WordPress featured image)
   const og = extractOgImage(html);
   if (og && !isIconOrPlaceholder(og)) {
     return { imageUrl: og, bodyHtml };
   }
-  // 3. WordPress wp-post-image class
+  // 2. WordPress wp-post-image class
   const wpPost = bodyHtml.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i)
     || html.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i);
   if (wpPost) {
@@ -399,6 +395,10 @@ function extractFreigeistFeaturedImage(
     if (src && !isIconOrPlaceholder(src[1])) {
       return { imageUrl: src[1], bodyHtml: bodyHtml.replace(wpPost[0], "") };
     }
+  }
+  // 3. Video overlay (fallback only)
+  if (overlayImage && !isIconOrPlaceholder(overlayImage)) {
+    return { imageUrl: overlayImage, bodyHtml };
   }
   // 4. First real <img> in body
   const imgMatches = [...bodyHtml.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)];
