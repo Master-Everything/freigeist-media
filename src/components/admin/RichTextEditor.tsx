@@ -410,6 +410,9 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
         `<p><a class="freigeist-cta" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a></p><p></p>`,
       )
       .run();
+  };
+
+
 
   const addVideo = () => {
     const url = window.prompt("YouTube or Vimeo URL:");
