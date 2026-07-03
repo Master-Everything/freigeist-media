@@ -287,7 +287,7 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
       }).configure({
         openOnClick: false,
         protocols: ["http", "https", "mailto", "tel"],
-        HTMLAttributes: { rel: "noopener noreferrer nofollow" },
+        HTMLAttributes: { class: "text-primary underline", rel: "noopener noreferrer nofollow" },
         validate: (href: string) => /^(https?:|mailto:|tel:|\/|#)/i.test(href),
       }),
     ],
