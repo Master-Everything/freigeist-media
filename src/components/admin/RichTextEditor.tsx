@@ -402,7 +402,9 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
   const addCtaButton = () => {
     const url = window.prompt("Button-URL:");
     if (!url) return;
-    const label = window.prompt("Button-Text:", "Jetzt entdecken") || "Jetzt entdecken";
+    const raw = (window.prompt("Button-Text:", "Jetzt entdecken") || "Jetzt entdecken").trim();
+    const hasSparkle = /[\u2728\u2B50]|\uD83C\uDF1F/.test(raw);
+    const label = hasSparkle ? raw : `\u2728 ${raw} \u2728`;
     editor
       .chain()
       .focus()
