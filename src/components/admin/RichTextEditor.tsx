@@ -16,7 +16,7 @@ import {
   List, ListOrdered, Quote, Undo, Redo, Link as LinkIcon,
   Image as ImageIcon, Heading1, Heading2, Heading3, Minus, Upload,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Film,
-  RefreshCw, Loader2, Download,
+  RefreshCw, Loader2, Download, ChevronDown, User,
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
