@@ -581,7 +581,7 @@ function renderFreigeistBody(scope: string): string {
       if (!SPARKLE_RE.test(decoded)) { SPARKLE_RE.lastIndex = 0; return match; }
       SPARKLE_RE.lastIndex = 0;
       const safe = isSafeUrl(href) ? href : "#";
-      const clean = decoded.replace(SPARKLE_RE, "").replace(/\s+/g, " ").trim() || "Jetzt entdecken";
+      const clean = decoded.replace(/\s+/g, " ").trim() || "Jetzt entdecken";
       return `<a class="freigeist-cta" href="${safe}" target="_blank" rel="noopener">${clean}</a>`;
     },
   );
