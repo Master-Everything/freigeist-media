@@ -716,6 +716,7 @@ Deno.serve(async (req) => {
           bodyHtml = a.bodyHtml;
           featuredImageSrc = a.featuredImageSrc;
           firstVideoUrl = a.firstVideoUrl;
+          subtitle = a.excerpt;
         } else {
           title = extractTitle(html, metadata);
 
