@@ -399,6 +399,18 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
     if (url) editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
+  const addCtaButton = () => {
+    const url = window.prompt("Button-URL:");
+    if (!url) return;
+    const label = window.prompt("Button-Text:", "Jetzt entdecken") || "Jetzt entdecken";
+    editor
+      .chain()
+      .focus()
+      .insertContent(
+        `<p><a class="freigeist-cta" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a></p><p></p>`,
+      )
+      .run();
+
   const addVideo = () => {
     const url = window.prompt("YouTube or Vimeo URL:");
     if (!url) return;
