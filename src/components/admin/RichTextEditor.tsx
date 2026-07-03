@@ -556,6 +556,12 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
           <MenuButton onClick={addVideo} title="Embed Video">
             <Film size={14} />
           </MenuButton>
+          <MenuButton onClick={() => editor.chain().focus().insertAccordion().run()} title="Akkordeon einfügen">
+            <ChevronDown size={14} />
+          </MenuButton>
+          <MenuButton onClick={() => editor.chain().focus().insertSpeakerProfile().run()} title="Speaker-Profil einfügen">
+            <User size={14} />
+          </MenuButton>
           <MenuButton onClick={openBatchDialog} title="Convert all images to WebP">
             {batchConverting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
           </MenuButton>
