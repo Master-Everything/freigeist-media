@@ -16,7 +16,7 @@ import {
   List, ListOrdered, Quote, Undo, Redo, Link as LinkIcon,
   Image as ImageIcon, Heading1, Heading2, Heading3, Minus, Upload,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Film,
-  RefreshCw, Loader2, Download, ChevronDown, User,
+  RefreshCw, Loader2, Download, ChevronDown, User, Sparkles,
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
@@ -268,7 +268,23 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
       Accordion,
       AccordionItem,
       SpeakerProfile,
-      Link.configure({
+      Link.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            class: {
+              default: null,
+              parseHTML: (el) => el.getAttribute("class"),
+              renderHTML: (attrs) => (attrs.class ? { class: attrs.class } : {}),
+            },
+            target: {
+              default: null,
+              parseHTML: (el) => el.getAttribute("target"),
+              renderHTML: (attrs) => (attrs.target ? { target: attrs.target } : {}),
+            },
+          };
+        },
+      }).configure({
         openOnClick: false,
         protocols: ["http", "https", "mailto", "tel"],
         HTMLAttributes: { class: "text-primary underline", rel: "noopener noreferrer nofollow" },
@@ -382,6 +398,21 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
     const url = window.prompt("URL:");
     if (url) editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
+
+  const addCtaButton = () => {
+    const url = window.prompt("Button-URL:");
+    if (!url) return;
+    const label = window.prompt("Button-Text:", "Jetzt entdecken") || "Jetzt entdecken";
+    editor
+      .chain()
+      .focus()
+      .insertContent(
+        `<p><a class="freigeist-cta" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a></p><p></p>`,
+      )
+      .run();
+  };
+
+
 
   const addVideo = () => {
     const url = window.prompt("YouTube or Vimeo URL:");
@@ -546,6 +577,9 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
           <Separator orientation="vertical" className="mx-1 h-6" />
           <MenuButton onClick={addLink} pressed={editor.isActive("link")} title="Add Link">
             <LinkIcon size={14} />
+          </MenuButton>
+          <MenuButton onClick={addCtaButton} title="CTA-Button einfügen">
+            <Sparkles size={14} />
           </MenuButton>
           <MenuButton onClick={handleImageUploadClick} title="Upload Image">
             <Upload size={14} />

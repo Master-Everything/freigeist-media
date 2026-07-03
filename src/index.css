@@ -710,3 +710,41 @@
     page-break-after: avoid;
   }
 }
+
+/* ============ Freigeist CTA Button ============ */
+a.freigeist-cta,
+.prose a.freigeist-cta,
+.dark .prose-invert a.freigeist-cta,
+.ProseMirror a.freigeist-cta,
+.article-body a.freigeist-cta {
+  display: inline-block;
+  background: linear-gradient(90deg, #2A809B 0%, #3BB8A8 100%);
+  color: #ffffff !important;
+  text-decoration: none !important;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.2;
+  padding: 0.875rem 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(42, 128, 155, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+a.freigeist-cta:hover,
+.prose a.freigeist-cta:hover,
+.ProseMirror a.freigeist-cta:hover,
+.article-body a.freigeist-cta:hover {
+  background: linear-gradient(90deg, #3BB8A8 0%, #2A809B 100%);
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(42, 128, 155, 0.4);
+  color: #ffffff !important;
+}
+
+.article-body p:has(> a.freigeist-cta:only-child),
+.ProseMirror p:has(> a.freigeist-cta:only-child) {
+  text-align: center;
+  margin: 2rem 0;
+}
+

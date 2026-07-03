@@ -556,13 +556,33 @@ function renderFreigeistBody(scope: string): string {
     },
   );
 
-  // 4. Button widget
+  // 4. Button widget — CTA style only if label contains sparkle icons
+  const SPARKLE_RE = /[\u2728\u2B50]|\uD83C\uDF1F/g; // ✨ ⭐ 🌟
+  const renderLink = (href: string, rawText: string): string => {
+    const safe = isSafeUrl(href) ? href : "#";
+    const decoded = decodeHtmlEntities(stripTags(rawText));
+    const hasSparkle = SPARKLE_RE.test(decoded);
+    SPARKLE_RE.lastIndex = 0;
+    if (hasSparkle) {
+      const clean = decoded.replace(SPARKLE_RE, "").replace(/\s+/g, " ").trim() || "Jetzt entdecken";
+      return `<p><a class="freigeist-cta" href="${safe}" target="_blank" rel="noopener">${clean}</a></p>`;
+    }
+    return `<p><a href="${safe}" target="_blank" rel="noopener">${decoded}</a></p>`;
+  };
   out = out.replace(
     /<div[^>]+data-widget_type=["']button\.default["'][^>]*>[\s\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>[\s\S]*?<span class=["']elementor-button-text["']>([\s\S]*?)<\/span>[\s\S]*?<\/a>[\s\S]*?<\/div>\s*<\/div>/gi,
-    (_m, href, text) => {
+    (_m, href, text) => renderLink(href, text),
+  );
+  // Sparkle-wrapped plain <a> links → CTA (leave non-sparkle links untouched)
+  out = out.replace(
+    /<a\b([^>]*?)href=["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi,
+    (match, _pre, href, _post, inner) => {
+      const decoded = decodeHtmlEntities(stripTags(inner));
+      if (!SPARKLE_RE.test(decoded)) { SPARKLE_RE.lastIndex = 0; return match; }
+      SPARKLE_RE.lastIndex = 0;
       const safe = isSafeUrl(href) ? href : "#";
-      const t = decodeHtmlEntities(stripTags(text));
-      return `<p><a class="button" href="${safe}" target="_blank" rel="noopener">${t}</a></p>`;
+      const clean = decoded.replace(SPARKLE_RE, "").replace(/\s+/g, " ").trim() || "Jetzt entdecken";
+      return `<a class="freigeist-cta" href="${safe}" target="_blank" rel="noopener">${clean}</a>`;
     },
   );
 
