@@ -695,6 +695,7 @@ Deno.serve(async (req) => {
         let bodyHtml: string;
         let featuredImageSrc: string | null = null;
         let firstVideoUrl: string | null = null;
+        let subtitle: string | null = null;
 
         const urlPath = new URL(url.trim()).pathname;
         let slug = urlPath.split("/").filter(Boolean).pop() || "untitled";
