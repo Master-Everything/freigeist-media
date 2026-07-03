@@ -297,13 +297,71 @@ function extractFreigeistTitle(html: string, metadata: any): string {
   return metadata?.title || metadata?.ogTitle || "Untitled";
 }
 
-function extractFreigeistExcerpt(html: string): string | null {
-  const inner = extractWidgetInner(html, "theme-post-excerpt.default");
-  if (inner) {
-    const text = decodeHtmlEntities(stripTags(inner));
-    return text || null;
+function normalizeFreigeistExcerptText(value: string): string | null {
+  const text = decodeHtmlEntities(stripTags(value))
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text) return null;
+  if (text.length < 12 || text.length > 320) return null;
+  if (/^\d{1,2}\.\d{1,2}\.\d{4}\b/.test(text)) return null;
+  if (/^(von|by|autor|author)\b/i.test(text)) return null;
+  if (/^(die\s+zusammenfassung|zusammenfassung|inhalt|share|teilen)\b/i.test(text)) return null;
+  return text;
+}
+
+function extractMetaContent(html: string, key: string): string | null {
+  const head = extractHead(html) || html;
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const byName = new RegExp(`<meta[^>]+name=["']${escaped}["'][^>]+content=["']([^"']+)["']`, "i");
+  const byNameReverse = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${escaped}["']`, "i");
+  const byProperty = new RegExp(`<meta[^>]+property=["']${escaped}["'][^>]+content=["']([^"']+)["']`, "i");
+  const byPropertyReverse = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${escaped}["']`, "i");
+  const m = head.match(byName) || head.match(byNameReverse) || head.match(byProperty) || head.match(byPropertyReverse);
+  return m ? decodeHtmlEntities(m[1]).replace(/\s+/g, " ").trim() : null;
+}
+
+function extractFreigeistExcerptBelowHeadline(html: string): string | null {
+  const h1 = html.match(/<h1[^>]*class=["'][^"']*elementor-heading-title[^"']*["'][^>]*>[\s\S]*?<\/h1>/i)
+    || html.match(/<h1[^>]*>[\s\S]*?<\/h1>/i);
+  if (!h1 || h1.index === undefined) return null;
+
+  const afterH1 = html.slice(h1.index + h1[0].length, h1.index + h1[0].length + 18000);
+  const beforeBody = afterH1.split(/data-widget_type=["']theme-post-content\.default["']/i)[0] || afterH1;
+  const widgetRe = /<div[^>]+(?:data-widget_type=["']([^"']+)["']|class=["']([^"']*elementor-widget[^"']*)["'])[^>]*>([\s\S]*?)(?=<div[^>]+(?:data-widget_type=["'][^"']+["']|class=["'][^"']*elementor-widget[^"']*["'])|data-widget_type=["']theme-post-content\.default["']|<\/body>)/gi;
+  let m: RegExpExecArray | null;
+
+  while ((m = widgetRe.exec(beforeBody)) !== null) {
+    const widgetType = (m[1] || "").toLowerCase();
+    const classes = (m[2] || "").toLowerCase();
+
+    if (/post-info|theme-post-title|share|nav|breadcrumb|image|video|button|icon-list/.test(`${widgetType} ${classes}`)) {
+      continue;
+    }
+
+    const container = m[3].match(/<div[^>]+class=["'][^"']*elementor-widget-container[^"']*["'][^>]*>([\s\S]*)/i)?.[1] || m[3];
+    const paragraph = container.match(/<(?:p|div|span)[^>]*>([\s\S]*?)<\/(?:p|div|span)>/i)?.[1] || container;
+    const text = normalizeFreigeistExcerptText(paragraph);
+    if (text) return text;
   }
-  return null;
+
+  const firstTextBlock = beforeBody.match(/<(?:p|div|span)[^>]*>([^<>]{20,420})<\/(?:p|div|span)>/i);
+  return firstTextBlock ? normalizeFreigeistExcerptText(firstTextBlock[1]) : null;
+}
+
+function extractFreigeistExcerpt(html: string): string | null {
+  const headlineSubtitle = extractFreigeistExcerptBelowHeadline(html);
+  if (headlineSubtitle) return headlineSubtitle;
+
+  const inner = extractWidgetInner(html, "theme-post-excerpt.default");
+  const widgetText = inner ? normalizeFreigeistExcerptText(inner) : null;
+  if (widgetText) return widgetText;
+
+  const classMatch = html.match(/<div[^>]+class=["'][^"']*elementor-widget-theme-post-excerpt[^"']*["'][^>]*>[\s\S]*?<div[^>]+class=["'][^"']*elementor-widget-container[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+  const classText = classMatch ? normalizeFreigeistExcerptText(classMatch[1]) : null;
+  if (classText) return classText;
+
+  return normalizeFreigeistExcerptText(extractMetaContent(html, "description") || extractMetaContent(html, "og:description") || "");
 }
 
 function extractFreigeistDate(html: string): string | null {
