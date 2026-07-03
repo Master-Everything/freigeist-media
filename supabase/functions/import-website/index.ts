@@ -414,10 +414,58 @@ function extractFreigeistFeaturedImage(
 function renderFreigeistBody(scope: string): string {
   if (!scope) return "";
 
-  // Replace each elementor widget with simplified markup, preserving inner content.
   let out = scope;
 
-  // 1. Headings: pull h1-h6 out of widget-heading containers
+  // 0a. Speaker profile: container with one image widget + one text-editor widget starting with <h1>.
+  // Detect flat pairs (image widget directly followed by text-editor widget whose inner starts with <h1>).
+  const speakerPlaceholders: string[] = [];
+  const imageWidgetRe = /<div[^>]+data-widget_type=["']image\.default["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'][^>]*)?[\s\S]*?<\/div>\s*<\/div>/i;
+  const pairRe = new RegExp(
+    imageWidgetRe.source +
+      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*(<h1[^>]*>[\s\S]*?<\/h1>[\s\S]*?)<\/div>\s*<\/div>/i.source,
+    "gi",
+  );
+  out = out.replace(pairRe, (_m, src, alt, textInner) => {
+    const cleanAlt = (alt || "").replace(/"/g, "&quot;");
+    // Strip any Elementor divs/spans out of textInner
+    let bio = textInner.replace(/<div[^>]*>/gi, "").replace(/<\/div>/gi, "");
+    bio = bio.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
+    const html = `<aside class="speaker-profile"><figure class="speaker-photo"><img src="${src}" alt="${cleanAlt}"></figure><div class="speaker-bio">${bio}</div></aside>`;
+    speakerPlaceholders.push(html);
+    return `@@SPEAKER_${speakerPlaceholders.length - 1}@@`;
+  });
+
+  // 0b. Nested accordion (Elementor renders native <details>/<summary>). Wrap items in accordion container.
+  const accordionPlaceholders: string[] = [];
+  // Find contiguous runs of details siblings
+  out = out.replace(
+    /(?:<details[^>]*>\s*<summary[^>]*>[\s\S]*?<\/summary>[\s\S]*?<\/details>\s*)+/gi,
+    (run) => {
+      const items: string[] = [];
+      run.replace(
+        /<details[^>]*>\s*<summary[^>]*>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi,
+        (_m, title, inner) => {
+          const t = decodeHtmlEntities(stripTags(title)).trim();
+          // Clean inner: strip elementor divs, keep paragraphs
+          let body = inner.replace(/<div[^>]*>/gi, "").replace(/<\/div>/gi, "");
+          body = body.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
+          body = body.trim();
+          if (!/<p[\s>]/i.test(body) && body) {
+            body = `<p>${body}</p>`;
+          }
+          items.push(
+            `<details class="freigeist-accordion-item"><summary>${t}</summary><div class="freigeist-accordion-body">${body}</div></details>`,
+          );
+          return "";
+        },
+      );
+      const html = `<div class="freigeist-accordion">${items.join("")}</div>`;
+      accordionPlaceholders.push(html);
+      return `@@ACCORDION_${accordionPlaceholders.length - 1}@@`;
+    },
+  );
+
+  // 1. Headings
   out = out.replace(
     /<div[^>]+data-widget_type=["']heading\.default["'][^>]*>[\s\S]*?(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>)[\s\S]*?<\/div>\s*<\/div>/gi,
     (_m, heading) => {
@@ -427,17 +475,16 @@ function renderFreigeistBody(scope: string): string {
     },
   );
 
-  // 2. Text editor: keep inner HTML as-is
+  // 2. Text editor: keep inner
   out = out.replace(
     /<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>([\s\S]*?)<\/div>\s*<\/div>/gi,
     (_m, inner) => inner,
   );
 
-  // 3. Image widget: keep image and optional surrounding link
+  // 3. Image widget
   out = out.replace(
     /<div[^>]+data-widget_type=["']image\.default["'][^>]*>[\s\S]*?(<a[^>]*>\s*<img[^>]+>\s*<\/a>|<img[^>]+>)[\s\S]*?<\/div>\s*<\/div>/gi,
     (_m, mediaTag) => {
-      // Pick the img src
       const srcMatch = mediaTag.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
       if (!srcMatch) return "";
       const altMatch = mediaTag.match(/<img[^>]+alt=["']([^"']*)["']/i);
@@ -451,7 +498,7 @@ function renderFreigeistBody(scope: string): string {
     },
   );
 
-  // 4. Button widget: flat link
+  // 4. Button widget
   out = out.replace(
     /<div[^>]+data-widget_type=["']button\.default["'][^>]*>[\s\S]*?<a[^>]+href=["']([^"']+)["'][^>]*>[\s\S]*?<span class=["']elementor-button-text["']>([\s\S]*?)<\/span>[\s\S]*?<\/a>[\s\S]*?<\/div>\s*<\/div>/gi,
     (_m, href, text) => {
@@ -461,43 +508,38 @@ function renderFreigeistBody(scope: string): string {
     },
   );
 
-  // 5. Divider widget -> <hr>
+  // 5. Divider -> <hr>
   out = out.replace(
     /<div[^>]+data-widget_type=["']divider\.default["'][^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,
     "<hr>",
   );
 
-  // 6. Nested accordion -> flatten to h3 + inner content
-  out = out.replace(
-    /<details[^>]*>\s*<summary[^>]*>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/gi,
-    (_m, title, inner) => {
-      const t = decodeHtmlEntities(stripTags(title));
-      return `<h3>${t}</h3>${inner}`;
-    },
-  );
-
-  // 7. Strip leftover Elementor wrappers/divs/spans — keep their inner content
+  // 6. Strip leftover Elementor wrappers
   out = out.replace(/<div[^>]*>/gi, "");
   out = out.replace(/<\/div>/gi, "");
   out = out.replace(/<span[^>]*>/gi, "");
   out = out.replace(/<\/span>/gi, "");
 
-  // 8. Strip svg blocks (Elementor icons)
+  // 7. Strip svg/script/style
   out = out.replace(/<svg[\s\S]*?<\/svg>/gi, "");
-  // 9. Strip <script>/<style> if any sneak in
   out = out.replace(/<script[\s\S]*?<\/script>/gi, "");
   out = out.replace(/<style[\s\S]*?<\/style>/gi, "");
 
-  // 10. Whitelist final tags
+  // 8. Whitelist final tags (include details/summary/aside for accordion + speaker)
   const allowed = new Set([
     "p","figure","figcaption","img","strong","em","b","i","a","h1","h2","h3","h4","h5","h6",
     "ul","ol","li","br","hr","blockquote","iframe","video","source",
+    "details","summary","aside","div",
   ]);
   out = out.replace(/<\/?([a-z][a-z0-9]*)\b[^>]*\/?>/gi, (match, tag) => {
     return allowed.has(tag.toLowerCase()) ? match : "";
   });
 
-  // 11. Collapse whitespace
+  // 9. Restore placeholders
+  out = out.replace(/@@SPEAKER_(\d+)@@/g, (_m, i) => speakerPlaceholders[Number(i)] || "");
+  out = out.replace(/@@ACCORDION_(\d+)@@/g, (_m, i) => accordionPlaceholders[Number(i)] || "");
+
+  // 10. Collapse whitespace
   out = out.replace(/\n{3,}/g, "\n\n");
   out = out.replace(/\s+\n/g, "\n").trim();
 
