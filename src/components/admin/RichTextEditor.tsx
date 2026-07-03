@@ -268,10 +268,26 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
       Accordion,
       AccordionItem,
       SpeakerProfile,
-      Link.configure({
+      Link.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            class: {
+              default: null,
+              parseHTML: (el) => el.getAttribute("class"),
+              renderHTML: (attrs) => (attrs.class ? { class: attrs.class } : {}),
+            },
+            target: {
+              default: null,
+              parseHTML: (el) => el.getAttribute("target"),
+              renderHTML: (attrs) => (attrs.target ? { target: attrs.target } : {}),
+            },
+          };
+        },
+      }).configure({
         openOnClick: false,
         protocols: ["http", "https", "mailto", "tel"],
-        HTMLAttributes: { class: "text-primary underline", rel: "noopener noreferrer nofollow" },
+        HTMLAttributes: { rel: "noopener noreferrer nofollow" },
         validate: (href: string) => /^(https?:|mailto:|tel:|\/|#)/i.test(href),
       }),
     ],
