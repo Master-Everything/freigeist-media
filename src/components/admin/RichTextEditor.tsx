@@ -3,6 +3,8 @@ import type { EditorView } from "@tiptap/pm/view";
 import StarterKit from "@tiptap/starter-kit";
 import { Figure, Figcaption } from "./extensions/FigureExtension";
 import { Video } from "./extensions/VideoExtension";
+import { Accordion, AccordionItem } from "./extensions/AccordionExtension";
+import { SpeakerProfile } from "./extensions/SpeakerProfileExtension";
 import { getEmbedUrl } from "@/lib/videoUtils";
 
 import Link from "@tiptap/extension-link";
@@ -14,7 +16,7 @@ import {
   List, ListOrdered, Quote, Undo, Redo, Link as LinkIcon,
   Image as ImageIcon, Heading1, Heading2, Heading3, Minus, Upload,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Film,
-  RefreshCw, Loader2, Download,
+  RefreshCw, Loader2, Download, ChevronDown, User,
 } from "lucide-react";
 import { Toggle } from "@/components/ui/toggle";
 import { Separator } from "@/components/ui/separator";
@@ -263,6 +265,9 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
       Figure,
       Figcaption,
       Video,
+      Accordion,
+      AccordionItem,
+      SpeakerProfile,
       Link.configure({
         openOnClick: false,
         protocols: ["http", "https", "mailto", "tel"],
@@ -550,6 +555,12 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
           </MenuButton>
           <MenuButton onClick={addVideo} title="Embed Video">
             <Film size={14} />
+          </MenuButton>
+          <MenuButton onClick={() => editor.chain().focus().insertAccordion().run()} title="Akkordeon einfügen">
+            <ChevronDown size={14} />
+          </MenuButton>
+          <MenuButton onClick={() => editor.chain().focus().insertSpeakerProfile().run()} title="Speaker-Profil einfügen">
+            <User size={14} />
           </MenuButton>
           <MenuButton onClick={openBatchDialog} title="Convert all images to WebP">
             {batchConverting ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}

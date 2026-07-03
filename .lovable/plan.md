@@ -1,74 +1,61 @@
-## Ziel
+## Fixes für den Freigeist-Import
 
-Der bestehende "Import from Website"-Dialog scrapet aktuell GoDaddy-Blogs (sucht nach `data-ux="BlogContent"`). Für `freigeist.media` (WordPress + Elementor) findet er nichts Brauchbares und importiert leeres oder kaputtes HTML.
+Vier Themen aus deinem Test-Report. Zwei sind reine Import-Fixes (Excerpt, Featured Image), zwei brauchen zusätzlich neue Editor-Bausteine (Accordion, Speaker-Profil), damit der Import überhaupt was zum Andocken hat.
 
-Wir erweitern die Edge Function `supabase/functions/import-website/index.ts` um einen zweiten Extraktor speziell für Freigeist-Artikel, der ausgewählt wird, wenn die URL auf `freigeist.media` zeigt. Der GoDaddy-Pfad bleibt für ältere Importe erhalten.
+### 1. Excerpt/Subtitle wird gespeichert
 
-## Was aus jedem Post übernommen wird
+Der Freigeist-Extraktor liest `theme-post-excerpt.default` bereits korrekt aus, aber der Insert in `posts` mappt ihn nicht auf die DB-Spalte `subtitle`.
 
-Am Beispiel `https://freigeist.media/guenter-marc-silber-knappheit-physische-realitaet/`:
+- In `supabase/functions/import-website/index.ts` beim `insert` das Feld `subtitle: excerpt` ergänzen (Freigeist-Pfad; GoDaddy-Pfad bleibt unverändert `null`).
 
-- **Titel** → erstes `<h1 class="elementor-heading-title">` (oben, nicht die H1en im Body)
-- **Excerpt** → `elementor-widget-theme-post-excerpt` → in `excerpt`/Meta-Description
-- **Veröffentlichungsdatum** → deutsches `dd.mm.yyyy` aus `elementor-widget-post-info`
-- **Featured Image** (`posts.image_url`) — Priorität:
-  1. `image_overlay.url` aus dem ersten `elementor-widget-video` `data-settings` (Cover-Bild des Videos — bei diesem Beispiel `Guenther-und-Mark-Edelmetalle-Aktuell.jpg`)
-  2. `og:image` aus dem `<head>`
-  3. `<link rel="image_src">`
-  4. WordPress Featured-Image-Marker (`wp-post-image`-Klasse) wenn das Theme eines rendert
-  5. Erstes "echtes" `<img>` im Body (mit der bestehenden `isIconOrPlaceholder`-Filterung)
+### 2. Featured Image = WordPress-Featured-Image (nicht Video-Overlay)
 
-  Das Bild wird wie alle anderen Bilder über den vorhandenen Pfad nach `post-images/` hochgeladen, in WebP konvertiert/dedupliziert und die resultierende relative URL in `posts.image_url` gespeichert.
-- **Featured Video** (`posts.video_url`) → `youtube_url`/`vimeo_url` aus dem ersten `elementor-widget-video` `data-settings`
-- **Body-Content** → gesamter Inhalt von `elementor-widget-theme-post-content`, gerendert als saubere HTML-Sequenz:
-  - `elementor-widget-heading` → `<h2>`
-  - `elementor-widget-text-editor` → eingebettete `<p>`, `<h1-6>`, `<ul>`, `<ol>`, `<strong>`, `<em>`, `<a>` 1:1
-  - `elementor-widget-image` → `<figure><img …></figure>` (inkl. umschließender Links wenn vorhanden)
-  - `elementor-widget-n-accordion` (Zusammenfassung) → wird zu `<h2>` + Absätzen geflacht
-  - `elementor-widget-divider` → `<hr>`
-  - `elementor-widget-button` → `<p><a class="button" …>Text</a></p>`
-  - **Entfernt:** Cookie-Banner, Sharing-Widgets, "Recent Posts", Footer, Navigationen, Skripte/Styles, leere Container, das Featured-Video-Widget (kommt separat in `video_url`), das als Featured gewählte Bild (kommt separat in `image_url`)
-- **Bilder im Body** → wie bisher: nach `post-images/` hochgeladen, Dedup über `normalizeImageUrl`, Originaldateinamen erhalten, WebP-Reuse
-- **Weitere Videos im Body** → als `<div class="video-embed"><iframe …></div>` eingebettet
+Priorität in `extractFreigeistFeaturedImage` wird umgestellt:
 
-## Auswahl-Logik
+1. `og:image` / `og:image:secure_url` aus dem `<head>` (das ist auf WordPress das Featured Image)
+2. Schema.org `primaryImageOfPage` / `ImageObject` aus `<script type="application/ld+json">` als Absicherung
+3. `wp-post-image`-Klasse im Body
+4. Video-Overlay aus dem Elementor-Video-Widget (nur als Fallback)
+5. Erstes „echtes" `<img>` im Body (mit vorhandener `isIconOrPlaceholder`-Filterung)
 
-Am Anfang von `Deno.serve` pro URL:
+Das Overlay-Bild landet erst zum Schluss, damit Speaker-/Video-Vorschaubilder nicht mehr als Featured missverstanden werden. Die restliche Bild-Upload-/Dedup-Pipeline bleibt unverändert.
 
-```text
-host = new URL(url).hostname
-if (host === 'freigeist.media' || host.endsWith('.freigeist.media')) {
-  use extractFreigeistArticle(html)
-} else {
-  use bestehender GoDaddy-Pfad
-}
-```
+### 3. Accordion-Block „Zusammenfassung des Interviews"
 
-Beide Pfade liefern dasselbe Zwischenformat `{ title, slug, publishedAt, excerpt, featuredImageSrc, firstVideoUrl, bodyHtml }`, danach läuft der bereits vorhandene Bild-Upload-, Slug-Dedup- und `posts`-Insert-Code unverändert. **Wichtig:** Der bestehende Code mappt `featuredImageSrc` bereits über `urlMap` auf die hochgeladene relative URL und schreibt sie in `posts.image_url` — das funktioniert für den neuen Freigeist-Pfad ohne Änderung.
+Neuer Editor-Baustein und Import-Mapping:
 
-## Technische Details
+- **Neue TipTap-Extension** `src/components/admin/extensions/AccordionExtension.ts` mit zwei Nodes:
+  - `accordion` (Block-Container, enthält beliebig viele `accordionItem`)
+  - `accordionItem` (Titel + collapsibler Body-Inhalt)
+- **Node-View** `AccordionNodeView.tsx` nutzt das vorhandene `@/components/ui/accordion` (Radix) im Editor, damit Vorschau und öffentliche Ansicht identisch aussehen. Add/Remove-Item-Buttons im Node-View, Titel als contenteditable.
+- **Öffentliche Rendering**: `renderHTML` gibt semantisches `<details><summary>Titel</summary>…Inhalt…</details>` aus, das wir in `ArticlePage` per CSS als Accordion stylen (bzw. optional per kleinem Hydrations-Wrapper mit Radix). So bleibt der gespeicherte HTML-Content sauber und ohne JS lesbar.
+- **Toolbar-Eintrag** in `RichTextEditor.tsx`: „Accordion einfügen".
+- **Freigeist-Import**: In `renderFreigeistBody` das `elementor-widget-n-accordion`-Widget nicht mehr in `<h3> + Inhalt` flatten, sondern in `<details class="lovable-accordion"><summary>…Titel…</summary>…gerenderter Item-Inhalt…</details>` konvertieren. TipTap `parseHTML` erkennt genau diese Struktur und macht daraus die neuen Nodes.
 
-**Freigeist-Parser** (neue Helfer in derselben Datei):
+### 4. Speaker-Profil-Block
 
-- `extractFreigeistTitle(html)` — erstes `h1.elementor-heading-title` außerhalb von `theme-post-content`.
-- `extractFreigeistExcerpt(html)` — Text aus `elementor-widget-theme-post-excerpt`.
-- `extractFreigeistDate(html)` — Regex `(\d{2})\.(\d{2})\.(\d{4})` im `elementor-widget-post-info`-Block.
-- `extractFreigeistVideo(html)` — JSON-decodet `data-settings` des ersten `elementor-widget-video`, liest `youtube_url`/`vimeo_url` und `image_overlay.url`. Returns `{ videoUrl, overlayImage }`. Entfernt den Widget-Block aus dem HTML.
-- `extractFreigeistFeaturedImage(html, overlayImage)` — wendet die oben beschriebene 5-Stufen-Priorität an und entfernt das gewählte `<img>` aus dem Body, damit es nicht doppelt erscheint.
-- `extractFreigeistBody(html)` — isoliert `elementor-widget-theme-post-content` per balancierter Div-Klammerung, läuft pro Elementor-Widget-Klasse durch und mappt sie auf das oben beschriebene saubere HTML. Inline-Tags über die bestehende `cleanHtml`-Whitelist.
+Elementor rendert das als 2-Spalten-Container: links `elementor-widget-image` (Speaker-Foto), rechts `elementor-widget-text-editor` mit `<h1>Name</h1>` gefolgt von 1–n `<p>`-Bio-Absätzen. Wir bauen das als eigenständigen Block nach.
 
-**Firecrawl-Aufruf:** Wir bleiben bei `formats: ["html"]` und `onlyMainContent: false`, weil wir die Elementor-Struktur und das `<head>` (für `og:image`) brauchen.
+- **Neue TipTap-Extension** `src/components/admin/extensions/SpeakerProfileExtension.ts`:
+  - Node `speakerProfile` mit Attributen `imageSrc`, `imageAlt` und `content` (inline HTML — Name + Bio-Absätze), Content-Modell `block+` damit der Editor die Bio direkt editieren kann.
+- **Node-View** `SpeakerProfileNodeView.tsx`: Zweispaltiges Layout (Foto quadratisch links, Text rechts) mit Image-Picker (nutzt vorhandene Image-Gallery/Upload-Logik) und editable Textbereich. Style passt zum Original: helle Card, Name als `<h3>`-Look, restliche Absätze als Bio-Text.
+- **Öffentliches Rendering**: `renderHTML` gibt `<aside class="speaker-profile"><figure><img …></figure><div class="speaker-bio">…</div></aside>` aus; entsprechende Styles ergänzen wir in `src/index.css` (2 Spalten Desktop, gestapelt Mobile).
+- **Toolbar-Eintrag** in `RichTextEditor.tsx`: „Speaker-Profil einfügen".
+- **Freigeist-Import**: In `renderFreigeistBody` erkennen wir Elementor-Container mit exakt einer `image.default`-Widget-Kachel + einer `text-editor.default`-Widget-Kachel deren erstes Kind ein `<h1>` ist → in `<aside class="speaker-profile">…</aside>` konvertieren. TipTap parst diese Struktur zum `speakerProfile`-Node.
 
-**Sicherheit:** Vorhandene `isSafeUrl`, `isSafeFetchUrl` (SSRF-Schutz), Auth-Check (`has_role admin`) bleiben unverändert.
+### 5. Änderungen an bestehenden Dateien
 
-## Frontend
+- `supabase/functions/import-website/index.ts` — Excerpt-Insert, Featured-Image-Priorität, Accordion + Speaker-Profil Mapping in `renderFreigeistBody`.
+- `src/components/admin/RichTextEditor.tsx` — neue Extensions registrieren, Toolbar-Buttons.
+- `src/components/admin/extensions/AccordionExtension.ts` + `AccordionNodeView.tsx` (neu).
+- `src/components/admin/extensions/SpeakerProfileExtension.ts` + `SpeakerProfileNodeView.tsx` (neu).
+- `src/pages/ArticlePage.tsx` / `src/index.css` — Styling für `details.lovable-accordion` und `aside.speaker-profile` im Public-Layout (kein JS nötig; `<details>` klappt nativ).
+- `src/components/admin/PostPreview.tsx` — nichts, wenn die Preview den gleichen Renderer wie `ArticlePage` benutzt (verifiziere ich in Build-Mode).
 
-Keine Änderungen an `WebsiteImportDialog.tsx` außer Placeholder-Update auf Freigeist-Beispiel-URLs.
+### Nicht enthalten (bewusst)
 
-## Out of Scope
+- Backwards-Reparsing bereits importierter Posts.
+- Volle Radix-Accordion-Interaktion auf öffentlichen Seiten (native `<details>` reicht — kannst du später upgraden).
+- Weitere Elementor-Layouts über die 2-Spalten-Speaker-Card hinaus.
 
-- Bulk-Discovery aller Freigeist-Posts via Sitemap
-- Kategorien/Tags aus `category-*`/`tag-*`-Body-Klassen mappen
-- Vimeo-Spezialfälle jenseits der Standard-`vimeo_url` in `data-settings`
-
-Nach Approval: Edits nur in `supabase/functions/import-website/index.ts` und Placeholder-Update im Dialog.
+Nach deinem OK lege ich in Build-Mode los.
