@@ -864,7 +864,7 @@ Deno.serve(async (req) => {
         existingSlugs.add(finalSlug);
 
         if (useFreigeist) {
-          const a = extractFreigeistArticle(html, metadata);
+          const a = await extractFreigeistArticle(url.trim(), html, metadata);
           title = a.title;
           publishedAt = a.publishedAt;
           bodyHtml = a.bodyHtml;
