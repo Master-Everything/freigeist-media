@@ -451,20 +451,60 @@ function extractFreigeistPostContentScope(html: string): string {
   return html.substring(startIdx);
 }
 
-/** Choose featured image strictly from WordPress featured-image field (wp-post-image class). No fallbacks. */
-function extractFreigeistFeaturedImage(
+/** Fetch WordPress featured media via REST API (post-thumbnail field). */
+async function fetchWordPressFeaturedImage(pageUrl: string): Promise<string | null> {
+  try {
+    const u = new URL(pageUrl);
+    const slug = u.pathname.split("/").filter(Boolean).pop();
+    if (!slug) return null;
+    const base = `${u.protocol}//${u.host}`;
+    if (!isSafeFetchUrl(base)) return null;
+    const listUrl = `${base}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&_embed=1`;
+    const res = await fetch(listUrl, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) { await res.text(); return null; }
+    const arr = await res.json();
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const post = arr[0];
+    const embedded = post?._embedded?.["wp:featuredmedia"];
+    if (Array.isArray(embedded) && embedded[0]?.source_url) {
+      return embedded[0].source_url as string;
+    }
+    const mediaId = post?.featured_media;
+    if (!mediaId) return null;
+    const mediaUrl = `${base}/wp-json/wp/v2/media/${mediaId}`;
+    const mRes = await fetch(mediaUrl, { signal: AbortSignal.timeout(10000) });
+    if (!mRes.ok) { await mRes.text(); return null; }
+    const m = await mRes.json();
+    return m?.source_url ?? null;
+  } catch (e) {
+    console.warn(`[import-website] fetchWordPressFeaturedImage failed: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+/** Choose featured image strictly from WordPress post-thumbnail. REST first, HTML class fallback. No heuristics. */
+async function extractFreigeistFeaturedImage(
+  pageUrl: string,
   html: string,
   bodyHtml: string,
-  _overlayImage: string | null,
-): { imageUrl: string | null; bodyHtml: string; source: "wp" | "none" } {
-  const wpPost = bodyHtml.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i)
-    || html.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i);
+): Promise<{ imageUrl: string | null; bodyHtml: string; source: "wp-rest" | "post-thumbnail" | "none" }> {
+  // 1. WordPress REST API
+  const restUrl = await fetchWordPressFeaturedImage(pageUrl);
+  if (restUrl) {
+    // If the same image is inline in the body, strip it to avoid duplication
+    const inline = bodyHtml.match(new RegExp(`<img[^>]+src=["']${restUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'][^>]*>`, "i"));
+    const newBody = inline ? bodyHtml.replace(inline[0], "") : bodyHtml;
+    return { imageUrl: restUrl, bodyHtml: newBody, source: "wp-rest" };
+  }
+
+  // 2. HTML fallback: post-thumbnail class names
+  const classRe = /<img[^>]+class=["'][^"']*(?:wp-post-image|attachment-post-thumbnail|size-post-thumbnail)[^"']*["'][^>]*>/i;
+  const wpPost = bodyHtml.match(classRe) || html.match(classRe);
   if (wpPost) {
     const src = wpPost[0].match(/\bsrc=["']([^"']+)["']/i);
     if (src && !isIconOrPlaceholder(src[1])) {
-      const wpIdx = bodyHtml.indexOf(wpPost[0]);
-      const newBody = wpIdx >= 0 ? bodyHtml.replace(wpPost[0], "") : bodyHtml;
-      return { imageUrl: src[1], bodyHtml: newBody, source: "wp" };
+      const newBody = bodyHtml.includes(wpPost[0]) ? bodyHtml.replace(wpPost[0], "") : bodyHtml;
+      return { imageUrl: src[1], bodyHtml: newBody, source: "post-thumbnail" };
     }
   }
   return { imageUrl: null, bodyHtml, source: "none" };
