@@ -64,10 +64,24 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-border pt-5">
+          <div className="max-w-3xl mx-auto mb-6">
+            <h4 className="font-body text-xs font-bold text-foreground uppercase tracking-wider mb-3">
+              Transparenzhinweis / Disclaimer
+            </h4>
+            <div className="space-y-2 text-[11px] text-muted-foreground leading-relaxed font-body">
+              <p>Die Inhalte auf dieser Seite dienen ausschließlich der Information, Inspiration und persönlichen Weiterbildung.</p>
+              <p>Einige der in den Beiträgen und Video-Interviews enthaltenen Links sind sogenannte Affiliate-Links. Das bedeutet: Wenn Du über einen dieser Links ein Produkt oder eine Dienstleistung erwirbst, kann eine Provision an uns gezahlt werden – ohne dass Dir dadurch zusätzliche Kosten entstehen.</p>
+              <p>Wir empfehlen ausschließlich Inhalte, Produkte oder Angebote, die wir selbst geprüft haben oder als wertvoll im Kontext unserer Themen erachten.</p>
+              <p>Die in den Videos und Beiträgen geäußerten Meinungen spiegeln die persönlichen Ansichten der jeweiligen Interviewpartner wider und stellen keine verbindlichen Aussagen oder Garantien dar.</p>
+              <p>Es wird keine Haftung für die Aktualität, Richtigkeit oder Vollständigkeit der bereitgestellten Informationen übernommen. Die Umsetzung der Inhalte erfolgt eigenverantwortlich.</p>
+              <p>Hinweis: Die Inhalte stellen keine finanzielle, medizinische, rechtliche oder sonstige professionelle Beratung dar.</p>
+            </div>
+          </div>
           <p className="text-[10px] text-muted-foreground text-center font-body">
             {t("footer.copyright", { year: new Date().getFullYear() })}
           </p>
         </div>
+
       </div>
     </footer>
   );
