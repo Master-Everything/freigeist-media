@@ -27,6 +27,7 @@ import AdminWorkSummary from "./pages/admin/AdminWorkSummary";
 import AdminEstimate from "./pages/admin/AdminEstimate";
 import AdminOnboarding from "./pages/admin/AdminOnboarding";
 import AdminEditorGuide from "./pages/admin/AdminEditorGuide";
+import AdminFeedback from "./pages/admin/AdminFeedback";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 import SetPassword from "./pages/SetPassword";
 import RssFeed from "./pages/RssFeed";
@@ -78,6 +79,7 @@ const AppRoutes = () => {
         <Route path="/admin/estimate" element={<ProtectedRoute requiredRole="admin"><AdminEstimate /></ProtectedRoute>} />
         <Route path="/admin/onboarding" element={<ProtectedRoute requiredRole="admin"><AdminOnboarding /></ProtectedRoute>} />
         <Route path="/admin/guide" element={<ProtectedRoute><AdminEditorGuide /></ProtectedRoute>} />
+        <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatedPage>

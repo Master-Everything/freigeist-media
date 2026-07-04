@@ -19,6 +19,7 @@ const de = {
     "dashboard": "Dashboard",
     "project": "Projekt",
     "posts": "Beiträge",
+    "feedback": "Feedback",
     "guide": "Anleitung",
     "users": "Benutzer",
     "docs": "Doku",
@@ -466,6 +467,33 @@ const de = {
     "childrenBody": "Diese Website richtet sich nicht an Kinder unter 13 Jahren. Wir erheben wissentlich keine personenbezogenen Daten von Kindern. Sollten Sie der Ansicht sein, dass wir versehentlich solche Daten erhoben haben, kontaktieren Sie uns bitte, damit wir diese umgehend löschen können.",
     "contactHeading": "6. Kontakt",
     "contactBody": "Bei Fragen zu dieser Datenschutzerklärung kontaktieren Sie uns bitte unter {{email}}."
+  },
+  "interviewFeedback": {
+    "headline": "Wie hat Dir das Interview gefallen? Lass es uns wissen. Schreibe uns Deine Meinung direkt hier unten in die Nachrichtenbox.",
+    "namePlaceholder": "Dein Name",
+    "emailPlaceholder": "Deine Email-Adresse",
+    "messagePlaceholder": "Dein Feedback zum Interview…",
+    "submit": "Interview Feedback absenden",
+    "sending": "Wird gesendet…",
+    "success": "Danke für dein Feedback!",
+    "thanks": "Danke für dein Feedback! Wir haben deine Nachricht erhalten.",
+    "invalid": "Bitte fülle alle Felder korrekt aus.",
+    "error": "Feedback konnte nicht gesendet werden. Bitte versuche es später erneut."
+  },
+  "adminFeedback": {
+    "title": "Interview-Feedback",
+    "subtitle": "Alle eingegangenen Feedbacks zu Interview-Beiträgen.",
+    "empty": "Noch keine Feedbacks vorhanden.",
+    "date": "Datum",
+    "post": "Beitrag",
+    "name": "Name",
+    "email": "E-Mail",
+    "message": "Nachricht",
+    "view": "Ansehen",
+    "deleteConfirm": "Dieses Feedback wirklich löschen?",
+    "deleted": "Feedback gelöscht.",
+    "deleteError": "Löschen fehlgeschlagen."
   }
 };
 export default de;
+

@@ -98,6 +98,44 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_feedback: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          post_id: string | null
+          post_slug: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          post_id?: string | null
+          post_slug: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          post_id?: string | null
+          post_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_feedback_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           access_level: Database["public"]["Enums"]["access_level"] | null

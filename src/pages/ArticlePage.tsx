@@ -11,6 +11,7 @@ import SocialShareButtons from "@/components/SocialShareButtons";
 import ImageLightbox from "@/components/ImageLightbox";
 import ArticleTableOfContents from "@/components/ArticleTableOfContents";
 import ArticleSidebarRelated from "@/components/ArticleSidebarRelated";
+import InterviewFeedbackForm from "@/components/InterviewFeedbackForm";
 import { usePost, useRelatedPosts } from "@/hooks/usePost";
 import { usePosts } from "@/hooks/usePosts";
 import { useAuthorLookup } from "@/hooks/useAuthorLookup";
@@ -271,6 +272,20 @@ const ArticlePage = () => {
               }
             }}
           />
+
+          {/* Interview feedback form */}
+          {(() => {
+            const catSlug = (article.category_slug || "").toLowerCase();
+            const catName = (cat?.name || "").toLowerCase();
+            const isInterview =
+              catSlug === "interview" ||
+              catSlug === "interviews" ||
+              catName.includes("interview");
+            return isInterview ? (
+              <InterviewFeedbackForm postId={article.id} postSlug={article.slug} />
+            ) : null;
+          })()}
+
 
           {/* Related (mobile only) */}
           {related && related.length > 0 && (
