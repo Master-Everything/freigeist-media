@@ -1,27 +1,31 @@
 ## Plan
 
-1. **Featured Image aus WordPress holen (mehrstufig, ohne Heuristik-Fallbacks)**
-   Für Freigeist-URLs in dieser Reihenfolge, ohne Rückfall auf `og:image`, `twitter:image`, Video-Overlay oder Body-Bilder:
-   
-   a. **WordPress REST API**: `GET https://freigeist.media/wp-json/wp/v2/posts?slug=<slug>&_embed=1`
-      - Beitragsbild aus `_embedded["wp:featuredmedia"][0].source_url`.
-      - Fallback: `GET /wp-json/wp/v2/media/<featured_media>` falls kein `_embed` da ist.
-   b. **HTML-Fallback**: Suche im ganzen HTML nach `<img class="… (wp-post-image|attachment-post-thumbnail|size-post-thumbnail) …">` (Post-Thumbnail heißt bei WP je nach Theme so).
-   c. Nichts gefunden → `imageUrl = null`, kein Ersatz.
-   
-   Log: `featuredSource=wp-rest|post-thumbnail|none featured=yes|no`.
+**Ziel:** Beim Import von Freigeist-Interviews den statischen Feedback-Aufruf + das eingebettete Kontaktformular aus dem Body entfernen, da wir dafür jetzt das eigene `InterviewFeedbackForm` haben.
 
-2. **Speaker-Block-Erkennung präzisieren**
-   Regel: Speaker-Profil nur, wenn das `image.default`-Widget direkt gefolgt wird von einem `text-editor.default`, dessen **erster Textblock eine Überschrift (`<h1>`–`<h3>`) ist, die ausschließlich den Speakernamen enthält** — d.h. reiner Textinhalt (evtl. in `<strong>` gewrappt), **kein Satzzeichen (`.,:;!?`), keine Ziffern, max. ~6 Wörter, Länge ≤ 60 Zeichen**.
-   
-   Dadurch wird der Content-Abschnitt „Immobilien · Jurisdiktionen · Strategische Diversifikation" (langer `<h2>` mit Punkten/Sonderzeichen) nicht mehr fälschlich als zweiter Speaker erkannt, während der echte Block (`<h1><strong>Florian Wilk</strong></h1>`) weiterhin matched.
+### Änderungen in `supabase/functions/import-website/index.ts`
 
-3. **Nicht ändern**
-   - Divider-Filter.
-   - Andere Import-Pfade (`import-md`, `import-csv`, generischer Website-Import).
-   - Frontend / Editor-UI.
+In `extractFreigeistArticle` (nach dem Speaker-Block-Handling, bevor das finale `bodyHtml` gebaut wird) einen zusätzlichen Cleanup-Schritt einfügen:
 
-4. **Deploy + Verifikation**
-   - `import-website` neu deployen.
-   - Testimport der gleichen URL.
-   - Erwartet: `featuredSource=wp-rest featured=yes`, `speakerPairs=1`, im Admin ein Featured Image + genau ein Speaker-Block.
+1. **Feedback-Überschrift + Absatz entfernen**
+   Entferne jede Überschrift (`<h1>`–`<h4>`) sowie den unmittelbar folgenden `<p>`, wenn der Überschriften-Text (case-insensitive, whitespace-normalisiert) mit `wie hat dir das interview gefallen` beginnt.
+
+2. **Formular-Reste entfernen**
+   - Alle `<form>…</form>`-Blöcke droppen.
+   - Alle Absätze/Blöcke droppen, die ausschließlich aus Placeholder-Texten bestehen: `dein name`, `deine email-adresse`, `dein feedback zum interview`, `interview feedback absenden` (auch als kombinierter Textknoten `Dein Name Deine Email-Adresse Dein Feedback zum Interview... Interview Feedback absenden`).
+   - Alle `<input>`, `<textarea>`, `<button>`-Reste, die vom Sanitizer sowieso raus wären, hier explizit vorher droppen, damit keine leeren Wrapper übrig bleiben.
+
+3. **Leere Wrapper aufräumen**
+   Nach dem Entfernen alle danach leer gewordenen `<div>`/`<section>`/`<p>` (nur whitespace/`&nbsp;`) verwerfen — analog zum bestehenden Divider-Cleanup.
+
+4. **Log**
+   Ein `feedbackBlockRemoved=yes|no` Feld ins bestehende Import-Log aufnehmen, damit man beim Testimport sofort sieht, ob der Block erkannt wurde.
+
+### Nicht ändern
+- `import-md`, `import-csv`, generischer Website-Import.
+- Featured-Image-Logik, Speaker-Block-Logik, Divider-Filter.
+- Frontend / `InterviewFeedbackForm`.
+
+### Deploy + Verifikation
+- `import-website` neu deployen.
+- Testimport einer Freigeist-Interview-URL.
+- Erwartet: `feedbackBlockRemoved=yes`, im Admin-Editor keine „Wie hat Dir das Interview gefallen"-Passage und keine Formular-Textreste mehr; auf der Public-Article-Page erscheint stattdessen nur das eingebaute `InterviewFeedbackForm`.
