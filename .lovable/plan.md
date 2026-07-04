@@ -1,33 +1,27 @@
-## Ziel
+## Plan
 
-Featured Image beim Website-Import ausschließlich aus dem WordPress-Featured-Image-Feld ziehen. Kein Fallback mehr auf `og:image`, `twitter:image`, Video-Overlay oder erstes Body-Bild.
+1. **Featured Image aus WordPress holen (mehrstufig, ohne Heuristik-Fallbacks)**
+   Für Freigeist-URLs in dieser Reihenfolge, ohne Rückfall auf `og:image`, `twitter:image`, Video-Overlay oder Body-Bilder:
+   
+   a. **WordPress REST API**: `GET https://freigeist.media/wp-json/wp/v2/posts?slug=<slug>&_embed=1`
+      - Beitragsbild aus `_embedded["wp:featuredmedia"][0].source_url`.
+      - Fallback: `GET /wp-json/wp/v2/media/<featured_media>` falls kein `_embed` da ist.
+   b. **HTML-Fallback**: Suche im ganzen HTML nach `<img class="… (wp-post-image|attachment-post-thumbnail|size-post-thumbnail) …">` (Post-Thumbnail heißt bei WP je nach Theme so).
+   c. Nichts gefunden → `imageUrl = null`, kein Ersatz.
+   
+   Log: `featuredSource=wp-rest|post-thumbnail|none featured=yes|no`.
 
-## Hintergrund
+2. **Speaker-Block-Erkennung präzisieren**
+   Regel: Speaker-Profil nur, wenn das `image.default`-Widget direkt gefolgt wird von einem `text-editor.default`, dessen **erster Textblock eine Überschrift (`<h1>`–`<h3>`) ist, die ausschließlich den Speakernamen enthält** — d.h. reiner Textinhalt (evtl. in `<strong>` gewrappt), **kein Satzzeichen (`.,:;!?`), keine Ziffern, max. ~6 Wörter, Länge ≤ 60 Zeichen**.
+   
+   Dadurch wird der Content-Abschnitt „Immobilien · Jurisdiktionen · Strategische Diversifikation" (langer `<h2>` mit Punkten/Sonderzeichen) nicht mehr fälschlich als zweiter Speaker erkannt, während der echte Block (`<h1><strong>Florian Wilk</strong></h1>`) weiterhin matched.
 
-WordPress rendert das „Featured Image" (Beitragsbild) im Frontend mit der CSS-Klasse `wp-post-image` (Standard von `the_post_thumbnail()`). Das ist das einzige verlässliche 1:1-Mapping zum WP-Feld.
+3. **Nicht ändern**
+   - Divider-Filter.
+   - Andere Import-Pfade (`import-md`, `import-csv`, generischer Website-Import).
+   - Frontend / Editor-UI.
 
-Alle anderen Quellen sind Heuristiken und liefern in Freigeist-Artikeln falsche Treffer (u.a. Speaker-Foto).
-
-## Änderungen (nur `supabase/functions/import-website/index.ts`)
-
-1. **`extractFreigeistFeaturedImage` vereinfachen**
-   - Entfernen: `og:image`-Match, `twitter:image`-Match, Video-Overlay-Fallback, Body-Bild-Fallback inkl. `isInsideSpeakerAside`-Hilfe.
-   - Behalten: ausschließlich Regex auf `<img … class="… wp-post-image …" …>` (zuerst im Body-Scope, dann im gesamten HTML).
-   - Wenn kein `wp-post-image` gefunden: `imageUrl = null`, `source = "none"` — kein Ersatzbild.
-   - Bild wird weiterhin aus `bodyHtml` entfernt, falls es dort steht (damit es nicht doppelt erscheint).
-   - `source`-Enum reduzieren auf `"wp" | "none"`.
-
-2. **Log anpassen**
-   - `console.log("[import-website] extractFreigeistArticle: featuredSource=wp|none featured=yes|no")` bleibt, Werte-Set verkleinert.
-
-3. **Nicht anfassen**
-   - Speaker-Pair-Logik, Divider-Filter, Frontend, andere Import-Pfade (`import-md`, `import-csv`).
-
-## Ergebnis
-
-- Artikel ohne gesetztes WP-Featured-Image werden ohne Featured Image importiert (Admin kann später manuell setzen).
-- Speaker-Foto kann nicht mehr fälschlich als Featured Image landen.
-
-## Test
-
-Nach Deploy: Test-Import derselben URL, dann prüfe ich `supabase--edge_function_logs` auf `featuredSource=wp` bzw. `none` und du verifizierst im Admin.
+4. **Deploy + Verifikation**
+   - `import-website` neu deployen.
+   - Testimport der gleichen URL.
+   - Erwartet: `featuredSource=wp-rest featured=yes`, `speakerPairs=1`, im Admin ein Featured Image + genau ein Speaker-Block.

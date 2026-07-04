@@ -451,20 +451,60 @@ function extractFreigeistPostContentScope(html: string): string {
   return html.substring(startIdx);
 }
 
-/** Choose featured image strictly from WordPress featured-image field (wp-post-image class). No fallbacks. */
-function extractFreigeistFeaturedImage(
+/** Fetch WordPress featured media via REST API (post-thumbnail field). */
+async function fetchWordPressFeaturedImage(pageUrl: string): Promise<string | null> {
+  try {
+    const u = new URL(pageUrl);
+    const slug = u.pathname.split("/").filter(Boolean).pop();
+    if (!slug) return null;
+    const base = `${u.protocol}//${u.host}`;
+    if (!isSafeFetchUrl(base)) return null;
+    const listUrl = `${base}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&_embed=1`;
+    const res = await fetch(listUrl, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) { await res.text(); return null; }
+    const arr = await res.json();
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const post = arr[0];
+    const embedded = post?._embedded?.["wp:featuredmedia"];
+    if (Array.isArray(embedded) && embedded[0]?.source_url) {
+      return embedded[0].source_url as string;
+    }
+    const mediaId = post?.featured_media;
+    if (!mediaId) return null;
+    const mediaUrl = `${base}/wp-json/wp/v2/media/${mediaId}`;
+    const mRes = await fetch(mediaUrl, { signal: AbortSignal.timeout(10000) });
+    if (!mRes.ok) { await mRes.text(); return null; }
+    const m = await mRes.json();
+    return m?.source_url ?? null;
+  } catch (e) {
+    console.warn(`[import-website] fetchWordPressFeaturedImage failed: ${(e as Error).message}`);
+    return null;
+  }
+}
+
+/** Choose featured image strictly from WordPress post-thumbnail. REST first, HTML class fallback. No heuristics. */
+async function extractFreigeistFeaturedImage(
+  pageUrl: string,
   html: string,
   bodyHtml: string,
-  _overlayImage: string | null,
-): { imageUrl: string | null; bodyHtml: string; source: "wp" | "none" } {
-  const wpPost = bodyHtml.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i)
-    || html.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i);
+): Promise<{ imageUrl: string | null; bodyHtml: string; source: "wp-rest" | "post-thumbnail" | "none" }> {
+  // 1. WordPress REST API
+  const restUrl = await fetchWordPressFeaturedImage(pageUrl);
+  if (restUrl) {
+    // If the same image is inline in the body, strip it to avoid duplication
+    const inline = bodyHtml.match(new RegExp(`<img[^>]+src=["']${restUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["'][^>]*>`, "i"));
+    const newBody = inline ? bodyHtml.replace(inline[0], "") : bodyHtml;
+    return { imageUrl: restUrl, bodyHtml: newBody, source: "wp-rest" };
+  }
+
+  // 2. HTML fallback: post-thumbnail class names
+  const classRe = /<img[^>]+class=["'][^"']*(?:wp-post-image|attachment-post-thumbnail|size-post-thumbnail)[^"']*["'][^>]*>/i;
+  const wpPost = bodyHtml.match(classRe) || html.match(classRe);
   if (wpPost) {
     const src = wpPost[0].match(/\bsrc=["']([^"']+)["']/i);
     if (src && !isIconOrPlaceholder(src[1])) {
-      const wpIdx = bodyHtml.indexOf(wpPost[0]);
-      const newBody = wpIdx >= 0 ? bodyHtml.replace(wpPost[0], "") : bodyHtml;
-      return { imageUrl: src[1], bodyHtml: newBody, source: "wp" };
+      const newBody = bodyHtml.includes(wpPost[0]) ? bodyHtml.replace(wpPost[0], "") : bodyHtml;
+      return { imageUrl: src[1], bodyHtml: newBody, source: "post-thumbnail" };
     }
   }
   return { imageUrl: null, bodyHtml, source: "none" };
@@ -478,17 +518,29 @@ function renderFreigeistBody(scope: string): string {
 
   let out = scope;
 
-  // 0a. Speaker profile: container with one image widget + one text-editor widget
-  // whose inner starts with a heading (<h1>-<h3>) or a bold paragraph (<p><strong>).
+  // 0a. Speaker profile: image widget + text-editor widget whose FIRST heading
+  // contains ONLY the speaker name (short, no punctuation/digits, max 6 words).
   const speakerPlaceholders: string[] = [];
   const imageWidgetRe = /<div[^>]+data-widget_type=["']image\.default["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'][^>]*)?[\s\S]*?<\/div>\s*<\/div>/i;
   const pairRe = new RegExp(
     imageWidgetRe.source +
-      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*((?:<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>|<p[^>]*>\s*<strong[^>]*>[\s\S]*?<\/strong>[\s\S]*?<\/p>)[\s\S]*?)<\/div>\s*<\/div>/i.source,
+      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*(<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>[\s\S]*?)<\/div>\s*<\/div>/i.source,
     "gi",
   );
+  const isSpeakerNameHeading = (headingHtml: string): boolean => {
+    const text = decodeHtmlEntities(stripTags(headingHtml)).trim();
+    if (!text) return false;
+    if (text.length > 60) return false;
+    if (/[.,:;!?()\[\]0-9]/.test(text)) return false;
+    if (text.split(/\s+/).length > 6) return false;
+    return true;
+  };
   let speakerPairCount = 0;
-  out = out.replace(pairRe, (_m, src, alt, textInner) => {
+  out = out.replace(pairRe, (match, src, alt, textInner) => {
+    const firstHeading = textInner.match(/<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>/i);
+    if (!firstHeading || !isSpeakerNameHeading(firstHeading[0])) {
+      return match; // leave as-is, will be rendered by regular widget rules
+    }
     const cleanAlt = (alt || "").replace(/"/g, "&quot;");
     let bio = textInner.replace(/<div[^>]*>/gi, "").replace(/<\/div>/gi, "");
     bio = bio.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
@@ -498,6 +550,7 @@ function renderFreigeistBody(scope: string): string {
     return `@@SPEAKER_${speakerPlaceholders.length - 1}@@`;
   });
   console.log(`[import-website] renderFreigeistBody: speakerPairs=${speakerPairCount}`);
+
 
   // 0b. Nested accordion (Elementor renders native <details>/<summary>). Wrap items in accordion container.
   const accordionPlaceholders: string[] = [];
@@ -644,20 +697,20 @@ function renderFreigeistBody(scope: string): string {
   return out;
 }
 
-function extractFreigeistArticle(html: string, metadata: any): {
+async function extractFreigeistArticle(pageUrl: string, html: string, metadata: any): Promise<{
   title: string;
   publishedAt: string | null;
   excerpt: string | null;
   bodyHtml: string;
   featuredImageSrc: string | null;
   firstVideoUrl: string | null;
-} {
+}> {
   const title = extractFreigeistTitle(html, metadata);
   const excerpt = extractFreigeistExcerpt(html);
   const publishedAt = extractFreigeistDate(html);
 
   // Pull video info first, then strip its widget so it's not parsed as body.
-  const { videoUrl, overlayImage, html: htmlNoVideo } = extractFreigeistVideo(html);
+  const { videoUrl, html: htmlNoVideo } = extractFreigeistVideo(html);
 
   const scope = extractFreigeistPostContentScope(htmlNoVideo);
   let bodyHtml = renderFreigeistBody(scope);
@@ -666,12 +719,9 @@ function extractFreigeistArticle(html: string, metadata: any): {
   const { html: bodyWithVideos, firstVideoUrl: bodyVideoUrl } = convertVideoLinks(bodyHtml);
   bodyHtml = bodyWithVideos;
 
-  // Featured image (and remove from body so it's not duplicated)
-  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean, source: featuredSource } = extractFreigeistFeaturedImage(
-    htmlNoVideo,
-    bodyHtml,
-    overlayImage,
-  );
+  // Featured image via WordPress post-thumbnail (REST first, HTML fallback)
+  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean, source: featuredSource } =
+    await extractFreigeistFeaturedImage(pageUrl, htmlNoVideo, bodyHtml);
   bodyHtml = bodyClean;
   console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
 
@@ -684,6 +734,7 @@ function extractFreigeistArticle(html: string, metadata: any): {
     firstVideoUrl: videoUrl || bodyVideoUrl,
   };
 }
+
 
 function isFreigeistUrl(url: string): boolean {
   try {
@@ -813,7 +864,7 @@ Deno.serve(async (req) => {
         existingSlugs.add(finalSlug);
 
         if (useFreigeist) {
-          const a = extractFreigeistArticle(html, metadata);
+          const a = await extractFreigeistArticle(url.trim(), html, metadata);
           title = a.title;
           publishedAt = a.publishedAt;
           bodyHtml = a.bodyHtml;
