@@ -53,6 +53,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
               {t("nav.posts")}
             </Link>
             <Link
+              to="/admin/feedback"
+              className={`transition-colors ${location.pathname.startsWith("/admin/feedback") ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {t("nav.feedback")}
+            </Link>
+            <Link
               to="/admin/guide"
               className={`transition-colors ${location.pathname.startsWith("/admin/guide") ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
             >

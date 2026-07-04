@@ -79,6 +79,7 @@ const AppRoutes = () => {
         <Route path="/admin/estimate" element={<ProtectedRoute requiredRole="admin"><AdminEstimate /></ProtectedRoute>} />
         <Route path="/admin/onboarding" element={<ProtectedRoute requiredRole="admin"><AdminOnboarding /></ProtectedRoute>} />
         <Route path="/admin/guide" element={<ProtectedRoute><AdminEditorGuide /></ProtectedRoute>} />
+        <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatedPage>
