@@ -451,39 +451,59 @@ function extractFreigeistPostContentScope(html: string): string {
   return html.substring(startIdx);
 }
 
-/** Choose featured image and remove it from body. Priority: og:image (WordPress featured) → wp-post-image → video overlay → first body image. */
+/** Return true if the match at `index` in `bodyHtml` sits inside a <aside class="speaker-profile"> block. */
+function isInsideSpeakerAside(bodyHtml: string, index: number): boolean {
+  const before = bodyHtml.slice(0, index);
+  const lastOpen = before.lastIndexOf('<aside class="speaker-profile"');
+  if (lastOpen < 0) return false;
+  const lastClose = before.lastIndexOf("</aside>");
+  return lastClose < lastOpen;
+}
+
+/** Choose featured image and remove it from body. Priority: og:image → twitter:image → wp-post-image → video overlay → first body image (skipping speaker photos). */
 function extractFreigeistFeaturedImage(
   html: string,
   bodyHtml: string,
   overlayImage: string | null,
-): { imageUrl: string | null; bodyHtml: string } {
+): { imageUrl: string | null; bodyHtml: string; source: string } {
   // 1. og:image / link rel=image_src (WordPress featured image)
   const og = extractOgImage(html);
   if (og && !isIconOrPlaceholder(og)) {
-    return { imageUrl: og, bodyHtml };
+    return { imageUrl: og, bodyHtml, source: "og" };
   }
-  // 2. WordPress wp-post-image class
+  // 2. twitter:image fallback
+  const tw = extractMetaContent(html, "twitter:image") || extractMetaContent(html, "twitter:image:src");
+  if (tw && !isIconOrPlaceholder(tw)) {
+    return { imageUrl: tw, bodyHtml, source: "twitter" };
+  }
+  // 3. WordPress wp-post-image class
   const wpPost = bodyHtml.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i)
     || html.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i);
   if (wpPost) {
     const src = wpPost[0].match(/\bsrc=["']([^"']+)["']/i);
     if (src && !isIconOrPlaceholder(src[1])) {
-      return { imageUrl: src[1], bodyHtml: bodyHtml.replace(wpPost[0], "") };
+      const wpIdx = bodyHtml.indexOf(wpPost[0]);
+      const newBody = wpIdx >= 0 && !isInsideSpeakerAside(bodyHtml, wpIdx)
+        ? bodyHtml.replace(wpPost[0], "")
+        : bodyHtml;
+      return { imageUrl: src[1], bodyHtml: newBody, source: "wp" };
     }
   }
-  // 3. Video overlay (fallback only)
+  // 4. Video overlay (fallback only)
   if (overlayImage && !isIconOrPlaceholder(overlayImage)) {
-    return { imageUrl: overlayImage, bodyHtml };
+    return { imageUrl: overlayImage, bodyHtml, source: "overlay" };
   }
-  // 4. First real <img> in body
-  const imgMatches = [...bodyHtml.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)];
-  for (const m of imgMatches) {
-    if (!isIconOrPlaceholder(m[1])) {
-      return { imageUrl: m[1], bodyHtml: bodyHtml.replace(m[0], "") };
-    }
+  // 5. First real <img> in body — skip icons/placeholders AND images inside speaker-profile asides
+  const imgRe = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+  let m: RegExpExecArray | null;
+  while ((m = imgRe.exec(bodyHtml)) !== null) {
+    if (isIconOrPlaceholder(m[1])) continue;
+    if (isInsideSpeakerAside(bodyHtml, m.index)) continue;
+    return { imageUrl: m[1], bodyHtml: bodyHtml.replace(m[0], ""), source: "body" };
   }
-  return { imageUrl: null, bodyHtml };
+  return { imageUrl: null, bodyHtml, source: "none" };
 }
+
 
 /** Render Elementor post-content scope into clean HTML. */
 function renderFreigeistBody(scope: string): string {
@@ -491,24 +511,26 @@ function renderFreigeistBody(scope: string): string {
 
   let out = scope;
 
-  // 0a. Speaker profile: container with one image widget + one text-editor widget starting with <h1>.
-  // Detect flat pairs (image widget directly followed by text-editor widget whose inner starts with <h1>).
+  // 0a. Speaker profile: container with one image widget + one text-editor widget
+  // whose inner starts with a heading (<h1>-<h3>) or a bold paragraph (<p><strong>).
   const speakerPlaceholders: string[] = [];
   const imageWidgetRe = /<div[^>]+data-widget_type=["']image\.default["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'][^>]*)?[\s\S]*?<\/div>\s*<\/div>/i;
   const pairRe = new RegExp(
     imageWidgetRe.source +
-      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*(<h1[^>]*>[\s\S]*?<\/h1>[\s\S]*?)<\/div>\s*<\/div>/i.source,
+      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*((?:<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>|<p[^>]*>\s*<strong[^>]*>[\s\S]*?<\/strong>[\s\S]*?<\/p>)[\s\S]*?)<\/div>\s*<\/div>/i.source,
     "gi",
   );
+  let speakerPairCount = 0;
   out = out.replace(pairRe, (_m, src, alt, textInner) => {
     const cleanAlt = (alt || "").replace(/"/g, "&quot;");
-    // Strip any Elementor divs/spans out of textInner
     let bio = textInner.replace(/<div[^>]*>/gi, "").replace(/<\/div>/gi, "");
     bio = bio.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
     const html = `<aside class="speaker-profile"><figure class="speaker-photo"><img src="${src}" alt="${cleanAlt}"></figure><div class="speaker-bio">${bio}</div></aside>`;
     speakerPlaceholders.push(html);
+    speakerPairCount++;
     return `@@SPEAKER_${speakerPlaceholders.length - 1}@@`;
   });
+  console.log(`[import-website] renderFreigeistBody: speakerPairs=${speakerPairCount}`);
 
   // 0b. Nested accordion (Elementor renders native <details>/<summary>). Wrap items in accordion container.
   const accordionPlaceholders: string[] = [];
@@ -603,11 +625,25 @@ function renderFreigeistBody(scope: string): string {
     },
   );
 
-  // 5. Divider -> <hr>
+  // 5. Divider widgets — remove entirely (no <hr>)
+  const dividerWidgetCount = (out.match(/data-widget_type=["']divider\.default["']/gi) || []).length;
   out = out.replace(
     /<div[^>]+data-widget_type=["']divider\.default["'][^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,
-    "<hr>",
+    "",
   );
+  // Also drop any elementor-widget-divider wrappers that don't carry data-widget_type
+  const dividerClassCount = (out.match(/class=["'][^"']*elementor-(?:widget-)?divider[^"']*["']/gi) || []).length;
+  out = out.replace(
+    /<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["'][^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi,
+    "",
+  );
+  out = out.replace(
+    /<div[^>]*class=["'][^"']*elementor-divider[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
+    "",
+  );
+  // And any stray <hr> left behind
+  out = out.replace(/<hr\s*\/?>/gi, "");
+  console.log(`[import-website] renderFreigeistBody: dividersRemoved widget=${dividerWidgetCount} class=${dividerClassCount}`);
 
   // 6. Strip leftover Elementor wrappers
   out = out.replace(/<div[^>]*>/gi, "");
@@ -664,12 +700,13 @@ function extractFreigeistArticle(html: string, metadata: any): {
   bodyHtml = bodyWithVideos;
 
   // Featured image (and remove from body so it's not duplicated)
-  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean } = extractFreigeistFeaturedImage(
+  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean, source: featuredSource } = extractFreigeistFeaturedImage(
     htmlNoVideo,
     bodyHtml,
     overlayImage,
   );
   bodyHtml = bodyClean;
+  console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
 
   return {
     title,
