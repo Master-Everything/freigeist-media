@@ -732,8 +732,7 @@ async function extractFreigeistArticle(pageUrl: string, html: string, metadata: 
   bodyHtml = bodyClean;
   console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
 
-  bodyHtml = bodyClean;
-  console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
+
 
   // Remove interview-feedback prompt + any leftover form placeholder text.
   // We now render our own <InterviewFeedbackForm> on the article page.
