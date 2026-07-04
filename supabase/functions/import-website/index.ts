@@ -135,6 +135,16 @@ function cleanHtml(html: string): string {
   s = s.replace(/<script[\s\S]*?<\/script>/gi, "");
   s = s.replace(/<style[\s\S]*?<\/style>/gi, "");
 
+  // Remove Elementor divider widgets entirely (nested wrappers + inner <hr>/<svg>)
+  s = s.replace(
+    /<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["'][^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi,
+    ""
+  );
+  s = s.replace(
+    /<div[^>]*class=["'][^"']*elementor-divider[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
+    ""
+  );
+
   // Preserve video-embed divs before stripping all divs
   const videoEmbedPlaceholders: string[] = [];
   s = s.replace(/<div\s+class=["']video-embed["'][^>]*>[\s\S]*?<\/div>/gi, (match) => {
