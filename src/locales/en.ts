@@ -19,6 +19,7 @@ const en = {
     "dashboard": "Dashboard",
     "project": "Project",
     "posts": "Posts",
+    "feedback": "Feedback",
     "guide": "Guide",
     "users": "Users",
     "docs": "Docs",
