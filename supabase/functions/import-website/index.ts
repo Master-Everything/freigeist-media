@@ -840,6 +840,13 @@ Deno.serve(async (req) => {
           bodyHtml = bodyWithoutFeatured;
         }
 
+        const h2Count = (bodyHtml.match(/<h2\b/gi) || []).length;
+        const pCount = (bodyHtml.match(/<p\b/gi) || []).length;
+        const imgCountBody = (bodyHtml.match(/<img\b/gi) || []).length;
+        const hasCta = /class=["'][^"']*cta-button[^"']*["']/i.test(bodyHtml);
+        console.log(`[import-website] extracted: title="${title?.slice(0, 80)}" slug=${finalSlug} subtitleLen=${subtitle?.length ?? 0} bodyLen=${bodyHtml.length} h2=${h2Count} p=${pCount} imgs=${imgCountBody} featured=${featuredImageSrc ? "yes" : "no"} video=${firstVideoUrl ? "yes" : "no"} cta=${hasCta}`);
+
+
 
         // Collect image URLs, normalize to deduplicate resized variants
         const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
