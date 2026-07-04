@@ -732,6 +732,36 @@ async function extractFreigeistArticle(pageUrl: string, html: string, metadata: 
   bodyHtml = bodyClean;
   console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
 
+  bodyHtml = bodyClean;
+  console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
+
+  // Remove interview-feedback prompt + any leftover form placeholder text.
+  // We now render our own <InterviewFeedbackForm> on the article page.
+  const beforeFeedback = bodyHtml;
+  const norm = (s: string) => s
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  // 1) Heading "Wie hat Dir das Interview gefallen…" + immediately following <p>
+  bodyHtml = bodyHtml.replace(
+    /<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>\s*(?:<p[^>]*>[\s\S]*?<\/p>\s*)?/gi,
+    (m, inner) => norm(inner).startsWith("wie hat dir das interview gefallen") ? "" : m,
+  );
+  // 2) Paragraphs that consist only of form placeholder labels
+  const placeholderRe = /^(?:dein name|deine e[- ]?mail[- ]?adresse|dein feedback zum interview\.*|interview feedback absenden|\s|\.|\,|\|)+$/i;
+  bodyHtml = bodyHtml.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (m, inner) => {
+    const t = norm(inner);
+    if (!t) return "";
+    if (placeholderRe.test(t)) return "";
+    // Combined single-line variant
+    if (/dein name/.test(t) && /email/.test(t) && /feedback/.test(t) && /absenden/.test(t)) return "";
+    return m;
+  });
+  const feedbackBlockRemoved = beforeFeedback !== bodyHtml;
+  console.log(`[import-website] extractFreigeistArticle: feedbackBlockRemoved=${feedbackBlockRemoved ? "yes" : "no"}`);
+
   return {
     title,
     publishedAt,
