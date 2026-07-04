@@ -451,58 +451,25 @@ function extractFreigeistPostContentScope(html: string): string {
   return html.substring(startIdx);
 }
 
-/** Return true if the match at `index` in `bodyHtml` sits inside a <aside class="speaker-profile"> block. */
-function isInsideSpeakerAside(bodyHtml: string, index: number): boolean {
-  const before = bodyHtml.slice(0, index);
-  const lastOpen = before.lastIndexOf('<aside class="speaker-profile"');
-  if (lastOpen < 0) return false;
-  const lastClose = before.lastIndexOf("</aside>");
-  return lastClose < lastOpen;
-}
-
-/** Choose featured image and remove it from body. Priority: og:image → twitter:image → wp-post-image → video overlay → first body image (skipping speaker photos). */
+/** Choose featured image strictly from WordPress featured-image field (wp-post-image class). No fallbacks. */
 function extractFreigeistFeaturedImage(
   html: string,
   bodyHtml: string,
-  overlayImage: string | null,
-): { imageUrl: string | null; bodyHtml: string; source: string } {
-  // 1. og:image / link rel=image_src (WordPress featured image)
-  const og = extractOgImage(html);
-  if (og && !isIconOrPlaceholder(og)) {
-    return { imageUrl: og, bodyHtml, source: "og" };
-  }
-  // 2. twitter:image fallback
-  const tw = extractMetaContent(html, "twitter:image") || extractMetaContent(html, "twitter:image:src");
-  if (tw && !isIconOrPlaceholder(tw)) {
-    return { imageUrl: tw, bodyHtml, source: "twitter" };
-  }
-  // 3. WordPress wp-post-image class
+  _overlayImage: string | null,
+): { imageUrl: string | null; bodyHtml: string; source: "wp" | "none" } {
   const wpPost = bodyHtml.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i)
     || html.match(/<img[^>]+class=["'][^"']*wp-post-image[^"']*["'][^>]*>/i);
   if (wpPost) {
     const src = wpPost[0].match(/\bsrc=["']([^"']+)["']/i);
     if (src && !isIconOrPlaceholder(src[1])) {
       const wpIdx = bodyHtml.indexOf(wpPost[0]);
-      const newBody = wpIdx >= 0 && !isInsideSpeakerAside(bodyHtml, wpIdx)
-        ? bodyHtml.replace(wpPost[0], "")
-        : bodyHtml;
+      const newBody = wpIdx >= 0 ? bodyHtml.replace(wpPost[0], "") : bodyHtml;
       return { imageUrl: src[1], bodyHtml: newBody, source: "wp" };
     }
   }
-  // 4. Video overlay (fallback only)
-  if (overlayImage && !isIconOrPlaceholder(overlayImage)) {
-    return { imageUrl: overlayImage, bodyHtml, source: "overlay" };
-  }
-  // 5. First real <img> in body — skip icons/placeholders AND images inside speaker-profile asides
-  const imgRe = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-  let m: RegExpExecArray | null;
-  while ((m = imgRe.exec(bodyHtml)) !== null) {
-    if (isIconOrPlaceholder(m[1])) continue;
-    if (isInsideSpeakerAside(bodyHtml, m.index)) continue;
-    return { imageUrl: m[1], bodyHtml: bodyHtml.replace(m[0], ""), source: "body" };
-  }
   return { imageUrl: null, bodyHtml, source: "none" };
 }
+
 
 
 /** Render Elementor post-content scope into clean HTML. */
