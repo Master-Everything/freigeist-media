@@ -665,6 +665,13 @@ function renderFreigeistBody(scope: string): string {
   out = out.replace(/<hr\s*\/?>/gi, "");
   console.log(`[import-website] renderFreigeistBody: dividersRemoved widget=${dividerWidgetCount} class=${dividerClassCount}`);
 
+  // 5b. Drop any embedded form blocks (feedback form etc.) before whitelist
+  const formCount = (out.match(/<form\b/gi) || []).length;
+  out = out.replace(/<form[\s\S]*?<\/form>/gi, "");
+  // Also strip stray form-control tags so their labels/placeholders don't leak as text
+  out = out.replace(/<(input|textarea|button|select|option|label|fieldset|legend)\b[\s\S]*?(?:\/>|<\/\1>)/gi, "");
+  if (formCount) console.log(`[import-website] renderFreigeistBody: formsRemoved=${formCount}`);
+
   // 6. Strip leftover Elementor wrappers
   out = out.replace(/<div[^>]*>/gi, "");
   out = out.replace(/<\/div>/gi, "");
