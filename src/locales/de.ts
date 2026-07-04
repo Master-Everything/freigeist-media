@@ -19,6 +19,7 @@ const de = {
     "dashboard": "Dashboard",
     "project": "Projekt",
     "posts": "Beiträge",
+    "feedback": "Feedback",
     "guide": "Anleitung",
     "users": "Benutzer",
     "docs": "Doku",
