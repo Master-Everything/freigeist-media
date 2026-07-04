@@ -131,19 +131,24 @@ function truncateAtRecentPosts(html: string): string {
 }
 
 function cleanHtml(html: string): string {
+  const sizeBefore = html.length;
   let s = html;
   s = s.replace(/<script[\s\S]*?<\/script>/gi, "");
   s = s.replace(/<style[\s\S]*?<\/style>/gi, "");
 
   // Remove Elementor divider widgets entirely (nested wrappers + inner <hr>/<svg>)
+  const dividerWidgetMatches = s.match(/<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["']/gi)?.length ?? 0;
   s = s.replace(
     /<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["'][^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi,
     ""
   );
+  const dividerInnerMatches = s.match(/<div[^>]*class=["'][^"']*elementor-divider[^"']*["']/gi)?.length ?? 0;
   s = s.replace(
     /<div[^>]*class=["'][^"']*elementor-divider[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
     ""
   );
+  console.log(`[import-website] cleanHtml: dividers removed widget=${dividerWidgetMatches} inner=${dividerInnerMatches}`);
+
 
   // Preserve video-embed divs before stripping all divs
   const videoEmbedPlaceholders: string[] = [];
@@ -181,8 +186,10 @@ function cleanHtml(html: string): string {
   }
 
   s = s.replace(/\n{3,}/g, "\n\n").trim();
+  console.log(`[import-website] cleanHtml: size ${sizeBefore} -> ${s.length}`);
   return s;
 }
+
 
 /** Allow only http(s), mailto, tel, and relative URLs. Block javascript:, data:, file:, etc. */
 function isSafeUrl(url: string): boolean {
@@ -750,8 +757,10 @@ Deno.serve(async (req) => {
     const errors: any[] = [];
 
     for (const url of urls) {
+      const t0 = Date.now();
       try {
-        console.log(`Scraping: ${url}`);
+        console.log(`[import-website] === START ${url} ===`);
+
 
         const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
@@ -777,6 +786,8 @@ Deno.serve(async (req) => {
         const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
 
         const useFreigeist = isFreigeistUrl(url);
+        console.log(`[import-website] fetched: htmlLen=${html.length} freigeistMode=${useFreigeist} elapsed=${Date.now() - t0}ms`);
+
 
         let title: string;
         let publishedAt: string | null = null;
@@ -828,6 +839,13 @@ Deno.serve(async (req) => {
           featuredImageSrc = legacyFeatured;
           bodyHtml = bodyWithoutFeatured;
         }
+
+        const h2Count = (bodyHtml.match(/<h2\b/gi) || []).length;
+        const pCount = (bodyHtml.match(/<p\b/gi) || []).length;
+        const imgCountBody = (bodyHtml.match(/<img\b/gi) || []).length;
+        const hasCta = /class=["'][^"']*cta-button[^"']*["']/i.test(bodyHtml);
+        console.log(`[import-website] extracted: title="${title?.slice(0, 80)}" slug=${finalSlug} subtitleLen=${subtitle?.length ?? 0} bodyLen=${bodyHtml.length} h2=${h2Count} p=${pCount} imgs=${imgCountBody} featured=${featuredImageSrc ? "yes" : "no"} video=${firstVideoUrl ? "yes" : "no"} cta=${hasCta}`);
+
 
 
         // Collect image URLs, normalize to deduplicate resized variants
@@ -961,14 +979,18 @@ Deno.serve(async (req) => {
           .single();
 
         if (insertError) {
+          console.error(`[import-website] insert failed for ${url}: ${insertError.message}`);
           errors.push({ url, title, error: insertError.message });
         } else {
+          console.log(`[import-website] === DONE ${url} postId=${insertedPost?.id} readingTime=${readingTime} elapsed=${Date.now() - t0}ms ===`);
           created.push(insertedPost);
         }
       } catch (err: any) {
+        console.error(`[import-website] FAILED ${url}: ${err?.message}`, err?.stack);
         errors.push({ url, error: err.message });
       }
     }
+
 
     return new Response(
       JSON.stringify({ created, errors, total: urls.length }),

@@ -1,22 +1,23 @@
-## Fix: Elementor-Divider beim Import ignorieren
+## Logging für Test-Import
 
-In `supabase/functions/import-website/index.ts`, Funktion `cleanHtml` (Zeile 133), **vor** dem generischen `<div>`-Stripping (Zeile 145) einen Vorabschritt einfügen, der Elementor-Divider-Blöcke komplett entfernt (inkl. Inhalt wie `<hr>`, `<svg>`, Separator-Line):
+Ich baue in `supabase/functions/import-website/index.ts` strukturierte `console.log`-Marker ein, damit wir den nächsten Import via Edge Function Logs Schritt für Schritt validieren können.
 
-```ts
-// Remove Elementor divider widgets entirely (including inner <hr>/<svg>)
-s = s.replace(
-  /<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["'][^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi,
-  ""
-);
-s = s.replace(
-  /<div[^>]*class=["'][^"']*elementor-divider[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
-  ""
-);
-```
+### Log-Punkte
+Jeweils mit Prefix `[import-website]` und der Ziel-URL, damit filterbar:
 
-Zusätzlich als Sicherheitsnetz `<hr>` aus der Allowed-Liste (Zeile 148 & 164) rauslassen — steht dort bereits nicht drin, wird also durch das generische Stripping in Zeile 165-167 sowieso entfernt. Damit sollten keine Trennlinien aus Elementor mehr im Import landen.
+1. **Start**: URL, User-Agent-Flag, Timestamp.
+2. **Fetch**: HTTP-Status, Content-Length, Ladezeit ms.
+3. **Extraktion**: Länge des Roh-HTML, ob Freigeist-/Elementor-Pfad erkannt, gefundener Title, Excerpt-Länge.
+4. **cleanHtml**: 
+   - Anzahl entfernter Elementor-Divider (Count der Regex-Matches vor Ersetzung).
+   - HTML-Länge vor/nach dem Cleaning.
+5. **Bilder**: Anzahl gefundener `<img>`, Featured-Image-URL, Anzahl heruntergeladener/hochgeladener Bilder.
+6. **Videos**: gefundene Video-Links, erster Video-URL.
+7. **Ergebnis**: finale Content-Länge, Anzahl `<h2>`/`<p>`/`<img>` im Body, ob CTA-Button erkannt.
+8. **Fehler**: alle Catch-Blöcke loggen Stack + betroffener Schritt.
 
-## Verifikation
+### Nach dem Testimport
+Ich rufe `supabase--edge_function_logs` mit `function_name: "import-website"` ab und fasse zusammen, was extrahiert wurde und ob Divider/CTA/Bilder erwartungsgemäß verarbeitet wurden.
 
-- Erneuter Import eines freigeist.media-Posts mit Divider → keine Linien mehr im Body.
-- Andere Elemente (Überschriften, Bilder, Videos) unverändert.
+### Aufräumen
+Die Logs bleiben permanent drin (leichtgewichtige `console.log`s, kein PII) — falls du sie später entfernt haben willst, sag Bescheid.
