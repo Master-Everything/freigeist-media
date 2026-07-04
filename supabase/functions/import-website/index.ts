@@ -518,17 +518,29 @@ function renderFreigeistBody(scope: string): string {
 
   let out = scope;
 
-  // 0a. Speaker profile: container with one image widget + one text-editor widget
-  // whose inner starts with a heading (<h1>-<h3>) or a bold paragraph (<p><strong>).
+  // 0a. Speaker profile: image widget + text-editor widget whose FIRST heading
+  // contains ONLY the speaker name (short, no punctuation/digits, max 6 words).
   const speakerPlaceholders: string[] = [];
   const imageWidgetRe = /<div[^>]+data-widget_type=["']image\.default["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'][^>]*)?[\s\S]*?<\/div>\s*<\/div>/i;
   const pairRe = new RegExp(
     imageWidgetRe.source +
-      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*((?:<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>|<p[^>]*>\s*<strong[^>]*>[\s\S]*?<\/strong>[\s\S]*?<\/p>)[\s\S]*?)<\/div>\s*<\/div>/i.source,
+      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*(<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>[\s\S]*?)<\/div>\s*<\/div>/i.source,
     "gi",
   );
+  const isSpeakerNameHeading = (headingHtml: string): boolean => {
+    const text = decodeHtmlEntities(stripTags(headingHtml)).trim();
+    if (!text) return false;
+    if (text.length > 60) return false;
+    if (/[.,:;!?()\[\]0-9]/.test(text)) return false;
+    if (text.split(/\s+/).length > 6) return false;
+    return true;
+  };
   let speakerPairCount = 0;
-  out = out.replace(pairRe, (_m, src, alt, textInner) => {
+  out = out.replace(pairRe, (match, src, alt, textInner) => {
+    const firstHeading = textInner.match(/<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>/i);
+    if (!firstHeading || !isSpeakerNameHeading(firstHeading[0])) {
+      return match; // leave as-is, will be rendered by regular widget rules
+    }
     const cleanAlt = (alt || "").replace(/"/g, "&quot;");
     let bio = textInner.replace(/<div[^>]*>/gi, "").replace(/<\/div>/gi, "");
     bio = bio.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
@@ -538,6 +550,7 @@ function renderFreigeistBody(scope: string): string {
     return `@@SPEAKER_${speakerPlaceholders.length - 1}@@`;
   });
   console.log(`[import-website] renderFreigeistBody: speakerPairs=${speakerPairCount}`);
+
 
   // 0b. Nested accordion (Elementor renders native <details>/<summary>). Wrap items in accordion container.
   const accordionPlaceholders: string[] = [];
