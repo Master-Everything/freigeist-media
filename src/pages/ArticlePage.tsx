@@ -273,6 +273,20 @@ const ArticlePage = () => {
             }}
           />
 
+          {/* Interview feedback form */}
+          {(() => {
+            const catSlug = (article.category_slug || "").toLowerCase();
+            const catName = (cat?.name || "").toLowerCase();
+            const isInterview =
+              catSlug === "interview" ||
+              catSlug === "interviews" ||
+              catName.includes("interview");
+            return isInterview ? (
+              <InterviewFeedbackForm postId={article.id} postSlug={article.slug} />
+            ) : null;
+          })()}
+
+
           {/* Related (mobile only) */}
           {related && related.length > 0 && (
             <div className="mt-14 pt-8 border-t border-border lg:hidden">
