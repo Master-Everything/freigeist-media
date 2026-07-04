@@ -131,19 +131,24 @@ function truncateAtRecentPosts(html: string): string {
 }
 
 function cleanHtml(html: string): string {
+  const sizeBefore = html.length;
   let s = html;
   s = s.replace(/<script[\s\S]*?<\/script>/gi, "");
   s = s.replace(/<style[\s\S]*?<\/style>/gi, "");
 
   // Remove Elementor divider widgets entirely (nested wrappers + inner <hr>/<svg>)
+  const dividerWidgetMatches = s.match(/<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["']/gi)?.length ?? 0;
   s = s.replace(
     /<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["'][^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi,
     ""
   );
+  const dividerInnerMatches = s.match(/<div[^>]*class=["'][^"']*elementor-divider[^"']*["']/gi)?.length ?? 0;
   s = s.replace(
     /<div[^>]*class=["'][^"']*elementor-divider[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
     ""
   );
+  console.log(`[import-website] cleanHtml: dividers removed widget=${dividerWidgetMatches} inner=${dividerInnerMatches}`);
+
 
   // Preserve video-embed divs before stripping all divs
   const videoEmbedPlaceholders: string[] = [];
