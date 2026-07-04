@@ -27,6 +27,7 @@ import AdminWorkSummary from "./pages/admin/AdminWorkSummary";
 import AdminEstimate from "./pages/admin/AdminEstimate";
 import AdminOnboarding from "./pages/admin/AdminOnboarding";
 import AdminEditorGuide from "./pages/admin/AdminEditorGuide";
+import AdminFeedback from "./pages/admin/AdminFeedback";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 import SetPassword from "./pages/SetPassword";
 import RssFeed from "./pages/RssFeed";
