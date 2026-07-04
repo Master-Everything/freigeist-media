@@ -186,8 +186,10 @@ function cleanHtml(html: string): string {
   }
 
   s = s.replace(/\n{3,}/g, "\n\n").trim();
+  console.log(`[import-website] cleanHtml: size ${sizeBefore} -> ${s.length}`);
   return s;
 }
+
 
 /** Allow only http(s), mailto, tel, and relative URLs. Block javascript:, data:, file:, etc. */
 function isSafeUrl(url: string): boolean {
