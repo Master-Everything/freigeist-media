@@ -665,6 +665,13 @@ function renderFreigeistBody(scope: string): string {
   out = out.replace(/<hr\s*\/?>/gi, "");
   console.log(`[import-website] renderFreigeistBody: dividersRemoved widget=${dividerWidgetCount} class=${dividerClassCount}`);
 
+  // 5b. Drop any embedded form blocks (feedback form etc.) before whitelist
+  const formCount = (out.match(/<form\b/gi) || []).length;
+  out = out.replace(/<form[\s\S]*?<\/form>/gi, "");
+  // Also strip stray form-control tags so their labels/placeholders don't leak as text
+  out = out.replace(/<(input|textarea|button|select|option|label|fieldset|legend)\b[\s\S]*?(?:\/>|<\/\1>)/gi, "");
+  if (formCount) console.log(`[import-website] renderFreigeistBody: formsRemoved=${formCount}`);
+
   // 6. Strip leftover Elementor wrappers
   out = out.replace(/<div[^>]*>/gi, "");
   out = out.replace(/<\/div>/gi, "");
@@ -724,6 +731,35 @@ async function extractFreigeistArticle(pageUrl: string, html: string, metadata: 
     await extractFreigeistFeaturedImage(pageUrl, htmlNoVideo, bodyHtml);
   bodyHtml = bodyClean;
   console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
+
+
+
+  // Remove interview-feedback prompt + any leftover form placeholder text.
+  // We now render our own <InterviewFeedbackForm> on the article page.
+  const beforeFeedback = bodyHtml;
+  const norm = (s: string) => s
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  // 1) Heading "Wie hat Dir das Interview gefallen…" + immediately following <p>
+  bodyHtml = bodyHtml.replace(
+    /<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>\s*(?:<p[^>]*>[\s\S]*?<\/p>\s*)?/gi,
+    (m, inner) => norm(inner).startsWith("wie hat dir das interview gefallen") ? "" : m,
+  );
+  // 2) Paragraphs that consist only of form placeholder labels
+  const placeholderRe = /^(?:dein name|deine e[- ]?mail[- ]?adresse|dein feedback zum interview\.*|interview feedback absenden|\s|\.|\,|\|)+$/i;
+  bodyHtml = bodyHtml.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (m, inner) => {
+    const t = norm(inner);
+    if (!t) return "";
+    if (placeholderRe.test(t)) return "";
+    // Combined single-line variant
+    if (/dein name/.test(t) && /email/.test(t) && /feedback/.test(t) && /absenden/.test(t)) return "";
+    return m;
+  });
+  const feedbackBlockRemoved = beforeFeedback !== bodyHtml;
+  console.log(`[import-website] extractFreigeistArticle: feedbackBlockRemoved=${feedbackBlockRemoved ? "yes" : "no"}`);
 
   return {
     title,
