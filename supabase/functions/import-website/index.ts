@@ -697,20 +697,20 @@ function renderFreigeistBody(scope: string): string {
   return out;
 }
 
-function extractFreigeistArticle(html: string, metadata: any): {
+async function extractFreigeistArticle(pageUrl: string, html: string, metadata: any): Promise<{
   title: string;
   publishedAt: string | null;
   excerpt: string | null;
   bodyHtml: string;
   featuredImageSrc: string | null;
   firstVideoUrl: string | null;
-} {
+}> {
   const title = extractFreigeistTitle(html, metadata);
   const excerpt = extractFreigeistExcerpt(html);
   const publishedAt = extractFreigeistDate(html);
 
   // Pull video info first, then strip its widget so it's not parsed as body.
-  const { videoUrl, overlayImage, html: htmlNoVideo } = extractFreigeistVideo(html);
+  const { videoUrl, html: htmlNoVideo } = extractFreigeistVideo(html);
 
   const scope = extractFreigeistPostContentScope(htmlNoVideo);
   let bodyHtml = renderFreigeistBody(scope);
@@ -719,12 +719,9 @@ function extractFreigeistArticle(html: string, metadata: any): {
   const { html: bodyWithVideos, firstVideoUrl: bodyVideoUrl } = convertVideoLinks(bodyHtml);
   bodyHtml = bodyWithVideos;
 
-  // Featured image (and remove from body so it's not duplicated)
-  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean, source: featuredSource } = extractFreigeistFeaturedImage(
-    htmlNoVideo,
-    bodyHtml,
-    overlayImage,
-  );
+  // Featured image via WordPress post-thumbnail (REST first, HTML fallback)
+  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean, source: featuredSource } =
+    await extractFreigeistFeaturedImage(pageUrl, htmlNoVideo, bodyHtml);
   bodyHtml = bodyClean;
   console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
 
@@ -737,6 +734,7 @@ function extractFreigeistArticle(html: string, metadata: any): {
     firstVideoUrl: videoUrl || bodyVideoUrl,
   };
 }
+
 
 function isFreigeistUrl(url: string): boolean {
   try {
