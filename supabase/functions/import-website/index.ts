@@ -979,14 +979,18 @@ Deno.serve(async (req) => {
           .single();
 
         if (insertError) {
+          console.error(`[import-website] insert failed for ${url}: ${insertError.message}`);
           errors.push({ url, title, error: insertError.message });
         } else {
+          console.log(`[import-website] === DONE ${url} postId=${insertedPost?.id} readingTime=${readingTime} elapsed=${Date.now() - t0}ms ===`);
           created.push(insertedPost);
         }
       } catch (err: any) {
+        console.error(`[import-website] FAILED ${url}: ${err?.message}`, err?.stack);
         errors.push({ url, error: err.message });
       }
     }
+
 
     return new Response(
       JSON.stringify({ created, errors, total: urls.length }),
