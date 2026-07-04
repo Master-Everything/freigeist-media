@@ -605,11 +605,25 @@ function renderFreigeistBody(scope: string): string {
     },
   );
 
-  // 5. Divider -> <hr>
+  // 5. Divider widgets — remove entirely (no <hr>)
+  const dividerWidgetCount = (out.match(/data-widget_type=["']divider\.default["']/gi) || []).length;
   out = out.replace(
     /<div[^>]+data-widget_type=["']divider\.default["'][^>]*>[\s\S]*?<\/div>\s*<\/div>/gi,
-    "<hr>",
+    "",
   );
+  // Also drop any elementor-widget-divider wrappers that don't carry data-widget_type
+  const dividerClassCount = (out.match(/class=["'][^"']*elementor-(?:widget-)?divider[^"']*["']/gi) || []).length;
+  out = out.replace(
+    /<div[^>]*class=["'][^"']*elementor-widget-divider[^"']*["'][^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/gi,
+    "",
+  );
+  out = out.replace(
+    /<div[^>]*class=["'][^"']*elementor-divider[^"']*["'][^>]*>[\s\S]*?<\/div>/gi,
+    "",
+  );
+  // And any stray <hr> left behind
+  out = out.replace(/<hr\s*\/?>/gi, "");
+  console.log(`[import-website] renderFreigeistBody: dividersRemoved widget=${dividerWidgetCount} class=${dividerClassCount}`);
 
   // 6. Strip leftover Elementor wrappers
   out = out.replace(/<div[^>]*>/gi, "");
