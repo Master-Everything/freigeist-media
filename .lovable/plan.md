@@ -1,57 +1,33 @@
 ## Ziel
 
-Drei Fehler im Website-Import (`supabase/functions/import-website/index.ts`) für Freigeist-Artikel beheben:
+Featured Image beim Website-Import ausschließlich aus dem WordPress-Featured-Image-Feld ziehen. Kein Fallback mehr auf `og:image`, `twitter:image`, Video-Overlay oder erstes Body-Bild.
 
-1. Speaker-Foto landet fälschlich als Featured Image
-2. Speaker-Profil-Box wird ohne Bild gerendert
-3. Elementor-Divider tauchen weiterhin im Artikel auf
+## Hintergrund
 
-## Ursachenanalyse
+WordPress rendert das „Featured Image" (Beitragsbild) im Frontend mit der CSS-Klasse `wp-post-image` (Standard von `the_post_thumbnail()`). Das ist das einzige verlässliche 1:1-Mapping zum WP-Feld.
 
-**Featured Image & Speaker Box (Fehler 1 + 2 hängen zusammen)**
+Alle anderen Quellen sind Heuristiken und liefern in Freigeist-Artikeln falsche Treffer (u.a. Speaker-Foto).
 
-`renderFreigeistBody` erkennt Speaker-Paare (Bild-Widget + Text-Editor mit `<h1>`) und baut daraus `<aside class="speaker-profile">`. Wenn die Seite den Speaker-Namen als `<h2>`/`<h3>` (nicht `<h1>`) rendert, matcht das Regex-Pair nicht — das Bild wird zur normalen Body-`<figure>`.
+## Änderungen (nur `supabase/functions/import-website/index.ts`)
 
-Danach läuft `extractFreigeistFeaturedImage`:
-- 1) og:image → auf manchen Freigeist-Seiten fehlend/anders
-- 2) `wp-post-image` → nicht immer vorhanden
-- 3) Fallback: „erstes echtes `<img>` im Body" → greift das Speaker-Foto ab
+1. **`extractFreigeistFeaturedImage` vereinfachen**
+   - Entfernen: `og:image`-Match, `twitter:image`-Match, Video-Overlay-Fallback, Body-Bild-Fallback inkl. `isInsideSpeakerAside`-Hilfe.
+   - Behalten: ausschließlich Regex auf `<img … class="… wp-post-image …" …>` (zuerst im Body-Scope, dann im gesamten HTML).
+   - Wenn kein `wp-post-image` gefunden: `imageUrl = null`, `source = "none"` — kein Ersatzbild.
+   - Bild wird weiterhin aus `bodyHtml` entfernt, falls es dort steht (damit es nicht doppelt erscheint).
+   - `source`-Enum reduzieren auf `"wp" | "none"`.
 
-Zusätzlich entfernt der Fallback das Bild via `bodyHtml.replace(m[0], "")` — wenn das Pair-Regex diesmal doch gematcht hat, wird damit das `<img>` innerhalb `<aside class="speaker-profile">` leergeräumt → Speaker-Box ohne Bild.
+2. **Log anpassen**
+   - `console.log("[import-website] extractFreigeistArticle: featuredSource=wp|none featured=yes|no")` bleibt, Werte-Set verkleinert.
 
-**Divider (Fehler 3)**
+3. **Nicht anfassen**
+   - Speaker-Pair-Logik, Divider-Filter, Frontend, andere Import-Pfade (`import-md`, `import-csv`).
 
-`renderFreigeistBody` wandelt `divider.default`-Widgets aktuell in `<hr>` um (Zeile 608). Gewünscht ist: komplettes Rauswerfen.
+## Ergebnis
 
-## Änderungen (alle in `supabase/functions/import-website/index.ts`)
+- Artikel ohne gesetztes WP-Featured-Image werden ohne Featured Image importiert (Admin kann später manuell setzen).
+- Speaker-Foto kann nicht mehr fälschlich als Featured Image landen.
 
-1. **Speaker-Pair-Regex robuster machen**
-   - Text-Editor-Inhalt darf mit `<h1>`, `<h2>`, `<h3>` **oder** `<p><strong>` beginnen (typische Freigeist-Varianten für Speaker-Namen).
-   - Kein Verhalten außerhalb Speaker-Kontext ändern.
+## Test
 
-2. **Featured-Image-Extraktion sicher gegen Speaker-Foto**
-   - `extractFreigeistFeaturedImage`: og:image-Suche zusätzlich um `twitter:image` erweitern.
-   - Beim Fallback „erstes `<img>` im Body" **`<img>`-Tags innerhalb `<aside class="speaker-profile">` überspringen**.
-   - Beim Entfernen aus dem Body: nur ersetzen, wenn der Treffer nicht innerhalb einer Speaker-Aside liegt (damit die Box ihr Bild behält, falls doch mal getroffen).
-
-3. **Divider ersatzlos entfernen**
-   - Zeile 608: `<div … divider.default …>` → leerer String statt `<hr>`.
-   - Zusätzlich `elementor-widget-divider` / `elementor-divider`-Wrapper (die auch auf dem Freigeist-Pfad durchrutschen) vor dem Rendern des Body-Scope in `extractFreigeistArticle` entfernen (spiegelt die vorhandene `cleanHtml`-Logik, aber gezielt).
-
-4. **Logging ergänzen** (klein, für nächsten Test-Import)
-   - `[import-website] speakerPairs=<n> dividersRemoved=<n> featuredSource=<og|twitter|wp|body|none>`
-
-## Test-Plan
-
-Nach dem Deploy:
-1. Nutzer startet erneut den Test-Import mit derselben URL.
-2. Ich lese `supabase--edge_function_logs` und prüfe:
-   - `speakerPairs ≥ 1`
-   - `dividersRemoved` > 0 falls Original Dividers hatte
-   - `featuredSource` ≠ `body` (bzw. entspricht dem tatsächlich gewünschten Bild)
-3. Im Admin: Featured Image, Speaker-Box und Body optisch verifizieren.
-
-## Keine Änderungen an
-
-- Frontend/Editor (Speaker-Extension, Rendering) — die generierte `<aside class="speaker-profile">` bleibt strukturgleich.
-- Nicht-Freigeist-Import-Pfad.
+Nach Deploy: Test-Import derselben URL, dann prüfe ich `supabase--edge_function_logs` auf `featuredSource=wp` bzw. `none` und du verifizierst im Admin.
