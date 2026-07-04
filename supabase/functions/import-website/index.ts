@@ -1065,6 +1065,7 @@ Deno.serve(async (req) => {
             reading_time: readingTime,
             image_url: featuredImageUrl,
             video_url: firstVideoUrl ? firstVideoUrl : null,
+            category_slug: "Interview",
           })
           .select("id, title, slug")
           .single();
