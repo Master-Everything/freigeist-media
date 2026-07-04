@@ -786,6 +786,8 @@ Deno.serve(async (req) => {
         const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
 
         const useFreigeist = isFreigeistUrl(url);
+        console.log(`[import-website] fetched: htmlLen=${html.length} freigeistMode=${useFreigeist} elapsed=${Date.now() - t0}ms`);
+
 
         let title: string;
         let publishedAt: string | null = null;
