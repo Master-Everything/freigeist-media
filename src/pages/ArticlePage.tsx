@@ -11,6 +11,7 @@ import SocialShareButtons from "@/components/SocialShareButtons";
 import ImageLightbox from "@/components/ImageLightbox";
 import ArticleTableOfContents from "@/components/ArticleTableOfContents";
 import ArticleSidebarRelated from "@/components/ArticleSidebarRelated";
+import InterviewFeedbackForm from "@/components/InterviewFeedbackForm";
 import { usePost, useRelatedPosts } from "@/hooks/usePost";
 import { usePosts } from "@/hooks/usePosts";
 import { useAuthorLookup } from "@/hooks/useAuthorLookup";
