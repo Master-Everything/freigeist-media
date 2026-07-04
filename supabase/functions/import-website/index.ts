@@ -700,12 +700,13 @@ function extractFreigeistArticle(html: string, metadata: any): {
   bodyHtml = bodyWithVideos;
 
   // Featured image (and remove from body so it's not duplicated)
-  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean } = extractFreigeistFeaturedImage(
+  const { imageUrl: featuredImageSrc, bodyHtml: bodyClean, source: featuredSource } = extractFreigeistFeaturedImage(
     htmlNoVideo,
     bodyHtml,
     overlayImage,
   );
   bodyHtml = bodyClean;
+  console.log(`[import-website] extractFreigeistArticle: featuredSource=${featuredSource} featured=${featuredImageSrc ? "yes" : "no"}`);
 
   return {
     title,
