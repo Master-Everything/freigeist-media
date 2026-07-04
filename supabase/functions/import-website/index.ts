@@ -757,8 +757,10 @@ Deno.serve(async (req) => {
     const errors: any[] = [];
 
     for (const url of urls) {
+      const t0 = Date.now();
       try {
-        console.log(`Scraping: ${url}`);
+        console.log(`[import-website] === START ${url} ===`);
+
 
         const scrapeRes = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
