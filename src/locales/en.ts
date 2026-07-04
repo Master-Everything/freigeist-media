@@ -466,6 +466,33 @@ const en = {
     "childrenBody": "This website is not directed at children under 13. We do not knowingly collect personal information from children. If you believe we have inadvertently collected such information, please contact us so we can promptly remove it.",
     "contactHeading": "6. Contact",
     "contactBody": "If you have questions about this Privacy Policy, please contact us at {{email}}."
+  },
+  "interviewFeedback": {
+    "headline": "How did you like the interview? Let us know. Write us your thoughts right here in the message box below.",
+    "namePlaceholder": "Your name",
+    "emailPlaceholder": "Your email address",
+    "messagePlaceholder": "Your feedback on the interview…",
+    "submit": "Send interview feedback",
+    "sending": "Sending…",
+    "success": "Thanks for your feedback!",
+    "thanks": "Thanks for your feedback! We have received your message.",
+    "invalid": "Please fill in all fields correctly.",
+    "error": "Could not send feedback. Please try again later."
+  },
+  "adminFeedback": {
+    "title": "Interview Feedback",
+    "subtitle": "All feedback submitted on interview posts.",
+    "empty": "No feedback yet.",
+    "date": "Date",
+    "post": "Post",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "view": "View",
+    "deleteConfirm": "Delete this feedback?",
+    "deleted": "Feedback deleted.",
+    "deleteError": "Delete failed."
   }
 };
 export default en;
+
