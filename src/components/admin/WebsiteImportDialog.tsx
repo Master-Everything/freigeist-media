@@ -85,7 +85,7 @@ const WebsiteImportDialog = ({ open, onOpenChange }: WebsiteImportDialogProps) =
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe size={18} /> Import from Website
@@ -124,33 +124,35 @@ const WebsiteImportDialog = ({ open, onOpenChange }: WebsiteImportDialogProps) =
             </DialogFooter>
           </>
         ) : (
-          <div className="space-y-3">
-            {result.created.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-primary">
-                  ✓ {result.created.length} imported successfully
-                </p>
-                {result.created.map((p) => (
-                  <div key={p.id} className="flex items-center gap-2 text-sm text-muted-foreground pl-2">
-                    <CheckCircle2 size={12} className="text-primary shrink-0" />
-                    <span className="truncate">{p.title}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {result.errors.length > 0 && (
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-destructive">
-                  ✗ {result.errors.length} failed
-                </p>
-                {result.errors.map((e, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground pl-2">
-                    <XCircle size={12} className="text-destructive shrink-0 mt-0.5" />
-                    <span className="truncate">{e.url}: {e.error}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="flex flex-col gap-4 max-h-[70vh]">
+            <div className="space-y-4 overflow-y-auto pr-1 -mr-1">
+              {result.created.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-primary">
+                    ✓ {result.created.length} imported successfully
+                  </p>
+                  {result.created.map((p) => (
+                    <div key={p.id} className="flex items-start gap-2 text-sm text-muted-foreground pl-2">
+                      <CheckCircle2 size={12} className="text-primary shrink-0 mt-0.5" />
+                      <span className="break-words">{p.title}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {result.errors.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-sm font-medium text-destructive">
+                    ✗ {result.errors.length} failed
+                  </p>
+                  {result.errors.map((e, i) => (
+                    <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground pl-2">
+                      <XCircle size={12} className="text-destructive shrink-0 mt-0.5" />
+                      <span className="break-words">{e.url}: {e.error}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <DialogFooter>
               <Button onClick={handleClose}>Done</Button>
             </DialogFooter>
