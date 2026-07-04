@@ -491,24 +491,26 @@ function renderFreigeistBody(scope: string): string {
 
   let out = scope;
 
-  // 0a. Speaker profile: container with one image widget + one text-editor widget starting with <h1>.
-  // Detect flat pairs (image widget directly followed by text-editor widget whose inner starts with <h1>).
+  // 0a. Speaker profile: container with one image widget + one text-editor widget
+  // whose inner starts with a heading (<h1>-<h3>) or a bold paragraph (<p><strong>).
   const speakerPlaceholders: string[] = [];
   const imageWidgetRe = /<div[^>]+data-widget_type=["']image\.default["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*(?:alt=["']([^"']*)["'][^>]*)?[\s\S]*?<\/div>\s*<\/div>/i;
   const pairRe = new RegExp(
     imageWidgetRe.source +
-      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*(<h1[^>]*>[\s\S]*?<\/h1>[\s\S]*?)<\/div>\s*<\/div>/i.source,
+      /\s*(?:<div[^>]*>\s*)*<div[^>]+data-widget_type=["']text-editor\.default["'][^>]*>\s*<div class=["']elementor-widget-container["']>\s*((?:<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>|<p[^>]*>\s*<strong[^>]*>[\s\S]*?<\/strong>[\s\S]*?<\/p>)[\s\S]*?)<\/div>\s*<\/div>/i.source,
     "gi",
   );
+  let speakerPairCount = 0;
   out = out.replace(pairRe, (_m, src, alt, textInner) => {
     const cleanAlt = (alt || "").replace(/"/g, "&quot;");
-    // Strip any Elementor divs/spans out of textInner
     let bio = textInner.replace(/<div[^>]*>/gi, "").replace(/<\/div>/gi, "");
     bio = bio.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
     const html = `<aside class="speaker-profile"><figure class="speaker-photo"><img src="${src}" alt="${cleanAlt}"></figure><div class="speaker-bio">${bio}</div></aside>`;
     speakerPlaceholders.push(html);
+    speakerPairCount++;
     return `@@SPEAKER_${speakerPlaceholders.length - 1}@@`;
   });
+  console.log(`[import-website] renderFreigeistBody: speakerPairs=${speakerPairCount}`);
 
   // 0b. Nested accordion (Elementor renders native <details>/<summary>). Wrap items in accordion container.
   const accordionPlaceholders: string[] = [];
