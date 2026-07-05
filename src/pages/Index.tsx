@@ -15,7 +15,7 @@ import { getYouTubeThumbnail } from "@/lib/videoUtils";
 import { toAbsoluteUrl } from "@/lib/imageUrl";
 
 const Index = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: posts, isLoading: postsLoading } = usePosts();
   const { data: categories, isLoading: catsLoading } = useCategories();
 
