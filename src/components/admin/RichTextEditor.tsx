@@ -409,7 +409,7 @@ const RichTextEditor = ({ content, onChange, onEditorReady }: RichTextEditorProp
       .chain()
       .focus()
       .insertContent(
-        `<p><a class="freigeist-cta" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a></p><p></p>`,
+        `<p style="text-align:center"><a class="freigeist-cta" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a></p><p></p>`,
       )
       .run();
   };
