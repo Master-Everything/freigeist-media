@@ -1,41 +1,56 @@
-# Homepage-Hero: Featured Images voll anzeigen, Text darunter
-
 ## Ziel
-Auf der Startseite (`src/pages/Index.tsx`) sollen der Haupt-Hero und die drei Secondary-Storys ihre Featured Images **komplett** zeigen (kein Beschnitt, kein Overlay-Gradient). Kategorie-Pill, Titel, Subtitle und Meta-Zeile rutschen **unter** das Bild — sauber, editorial, state of the art.
+Die Top-Headline auf `/` von einem simplen zentrierten H1 in einen state-of-the-art Editorial-Masthead im "Modern Swiss Editorial"-Stil umbauen.
 
-Die darunterliegenden Kategorie-Sektionen bleiben unverändert (dort ist das Layout bereits „Bild oben, Text unten").
+## Umsetzung
 
-## Was sich ändert
+**Datei:** `src/pages/Index.tsx` (Zeilen ~83–88, der aktuelle `<h1>`-Block über dem Hero-Grid)
 
-### Main Hero (lg:col-span-3)
-- Container verliert `aspect-[16/10] lg:aspect-auto lg:min-h-[525px]` und wird zu `flex flex-col`.
-- Bild-Wrapper: eigener Block mit `aspect-[16/9]`, `rounded-xl`, `overflow-hidden`, `bg-muted`.
-- `<img>`: `object-contain` statt `object-cover`, damit **kein Bildinhalt beschnitten** wird. Hintergrund des Wrappers (`bg-muted` bzw. subtiler Gradient bei fehlendem Bild) füllt Letterbox-Ränder ruhig auf.
-- Hover-Zoom bleibt (dezent, `group-hover:scale-[1.02]`).
-- Overlay-Gradient (`bg-gradient-to-t from-black/80 …`) entfällt komplett.
-- Textblock wandert **unter** das Bild in einen eigenen `div` mit `pt-5`:
-  - Kategorie-Pill (Farbe der Kategorie beibehalten, aber Kontrast an Light/Dark anpassen: `color: cat.color`, `background: ${cat.color}15`)
-  - `<h2>` (statt `<h1>` in Karten-Kontext) mit `text-foreground` statt `text-white`
-  - Subtitle mit `text-muted-foreground`
-  - Meta-Zeile mit `text-muted-foreground`, Autor `text-foreground font-semibold`
+**Neuer Aufbau (drei Zeilen, links/rechts ausgerichtet, untere `border-b`):**
 
-### Secondary Stories (lg:col-span-2, 3 Karten)
-- Gleiches Prinzip: Karte wird `flex flex-col`, Bild-Wrapper mit `aspect-[16/9]` + `object-contain` + `bg-muted`, Text darunter (`pt-3`).
-- Kategorie-Label + Titel in `text-foreground` / `text-muted-foreground`, kein Overlay.
-- Horizontaler Mobile-Scroll (`flex-row … overflow-x-auto`) und Card-Breite `w-[280px]` bleiben.
+```text
+┌─────────────────────────────────────────────────────────────┐
+│ EST. 2005                                    ISSUE NO. XX   │
+│ ENGINEERING THE FUTURE                                      │
+│                                                             │
+│ FREIGEIST                                                   │
+│ MEDIA & TV        ← rechts daneben: kurzer Descriptor       │
+│                                                             │
+│ ─────────────────────────────────────────────────────────── │
+│ KATEGORIE · KATEGORIE · KATEGORIE       FR, 05. JUL 2026    │
+└─────────────────────────────────────────────────────────────┘
+```
 
-### Grid-Ausrichtung
-`grid grid-cols-1 lg:grid-cols-5 gap-5` bleibt. Damit die Höhen der Spalten schön aufgehen, kriegt die Secondary-Spalte auf Desktop `lg:grid-rows-3` mit `gap-5`, sodass die drei Kacheln zusammen etwa auf Höhe des Hero-Blocks landen (Bild + Text). Keine feste `min-h` mehr — die Spalten dürfen atmen.
+**Konkret:**
+- Container `max-w-[1600px] w-full border-b border-foreground/80 pb-8 md:pb-12 mb-10`
+- Top-Meta-Row: links `EST. 2005` + Tagline (aus `brand`/i18n: "ENGINEERING THE FUTURE"), rechts `ISSUE NO. XX` in dünnem Border-Kästchen. Klein, `tracking-[0.3em]`, uppercase, DM Sans.
+- Wordmark: `text-[12vw] md:text-[11vw] lg:text-[160px] leading-[0.85] font-bold tracking-tighter uppercase` (Space Grotesk). Zwei Zeilen: `FREIGEIST` und `MEDIA & TV`. Das `&` als Outline (`-webkit-text-stroke: 1px currentColor; color: transparent`).
+- Neben `MEDIA & TV` rechts (nur `md:`): kurzer Descriptor (2 Sätze, aus i18n), normaler Schnitt, `text-muted-foreground`, `max-w-sm`.
+- Bottom-Row mit `border-t border-foreground/10 pt-4`: links 3 Top-Kategorie-Links aus vorhandenen Kategorien, rechts aktuelles Datum (locale-abhängig via `date-fns` + i18n).
 
-## Technische Details
+**Design-Tokens & Fonts:**
+- Nur semantische Tokens: `text-foreground`, `text-muted-foreground`, `border-foreground/10`, `border-foreground/80`. Keine `text-black`/`text-white`. Funktioniert automatisch im Dark Mode.
+- Bestehende Fonts (Space Grotesk / DM Sans) — kein neuer Import.
 
-Betroffene Datei: **`src/pages/Index.tsx`** (Zeilen ~90–187). Keine anderen Dateien, keine Business-Logik, keine Datenmodell-Änderungen.
+**Motion:**
+- Sanftes On-Load-Reveal via `framer-motion`: Wordmark `opacity 0→1`, `y: 12→0`, `letter-spacing` von `-0.02em` auf `tracking-tighter` in 700ms, Meta-Rows leicht verzögert (stagger 80ms).
 
-Design-Tokens: nur semantische Tokens (`text-foreground`, `text-muted-foreground`, `bg-muted`, `border-border`) — keine `text-white`/`bg-black`-Hardcodes. Dark Mode funktioniert dadurch automatisch.
+**i18n:**
+- Neue Keys in `src/locales/en.ts` und `src/locales/de.ts`:
+  - `home.masthead.established` → "EST. 2005"
+  - `home.masthead.tagline` → "ENGINEERING THE FUTURE" / "TECHNIK VON MORGEN"
+  - `home.masthead.descriptor` → kurzer 1–2-Satz-Descriptor
+  - `home.masthead.issue` → "ISSUE NO. {{n}}"
+- Issue-Nummer: fortlaufend berechnet aus Anzahl publizierter Posts (oder statisch aus `brand.ts`, falls einfacher).
 
-`object-contain` + `bg-muted` ist die saubere Lösung für „Bild immer voll zeigen": Portrait-Bilder bekommen seitliche, Landscape-Bilder ggf. minimale Ränder in dezentem Muted-Ton — kein aggressiver Letterbox-Effekt, weil `aspect-[16/9]` nahe am typischen Bildformat liegt (Memory: „Aspect 16:9, WebP" ist Standard).
+**Kategorien in Bottom-Row:**
+- Top 3 nicht-leere Kategorien aus der bereits geladenen Kategorien-Liste, jeweils als `<Link>` zur Kategorie-Route (analog zum bestehenden Category-Nav).
 
-## Nicht Teil dieses Plans
-- Kategorie-Sektionen weiter unten (schon korrekt: Bild oben, Text unten).
-- Änderungen an Editor, Upload, Featured-Image-Regeln oder DB.
-- Änderungen an anderen Seiten (`/news`, Artikelseite).
+## Nicht enthalten
+- Keine Änderungen am Hero-Grid oder anderen Sektionen.
+- Keine Layout- oder Datenmodell-Änderungen.
+- Kein Umstieg auf globale `<Header>`-Komponente — bleibt lokal auf der Homepage.
+
+## Betroffene Dateien
+- `src/pages/Index.tsx` (Headline-Block ersetzen)
+- `src/locales/en.ts`, `src/locales/de.ts` (neue Masthead-Keys)
+- ggf. `src/config/brand.ts` (Issue-Startnummer, falls statisch)
