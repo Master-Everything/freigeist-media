@@ -89,54 +89,53 @@ const Index = () => {
 
       {/* ── Hero Section ── */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-4 md:pt-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 lg:gap-8">
           {/* Main hero */}
           <Link
             to={`/news/${hero.slug}`}
-            className="group lg:col-span-3 relative overflow-hidden rounded-xl aspect-[16/10] lg:aspect-auto lg:min-h-[525px]"
+            className="group lg:col-span-3 flex flex-col"
           >
-            {heroImage ? (
-              <img
-                src={heroImage}
-                alt={hero.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-            ) : (
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: `linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))`,
-                }}
-              >
-                {heroCat?.icon && (() => {
-                  const Icon = getIconByName(heroCat.icon);
-                  return <Icon size={140} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary-foreground/10" strokeWidth={1} />;
-                })()}
-              </div>
-            )}
-            {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-            {/* Content */}
-            <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-8">
+            <div className="relative overflow-hidden rounded-xl aspect-[16/9] bg-muted">
+              {heroImage ? (
+                <img
+                  src={heroImage}
+                  alt={hero.title}
+                  className="absolute inset-0 w-full h-full object-contain transition-transform duration-700 group-hover:scale-[1.02]"
+                />
+              ) : (
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))`,
+                  }}
+                >
+                  {heroCat?.icon && (() => {
+                    const Icon = getIconByName(heroCat.icon);
+                    return <Icon size={140} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-primary-foreground/10" strokeWidth={1} />;
+                  })()}
+                </div>
+              )}
+            </div>
+            <div className="pt-5">
               {heroCat && (
                 <span
                   className="inline-flex items-center gap-1.5 font-ui text-[0.7rem] font-semibold uppercase tracking-wide rounded-full px-2.5 py-1 w-fit mb-3"
-                  style={{ backgroundColor: `${heroCat.color}30`, color: "#fff" }}
+                  style={{ backgroundColor: `${heroCat.color}18`, color: heroCat.color }}
                 >
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: heroCat.color }} />
                   {heroCat.name}
                 </span>
               )}
-              <h1 className="font-heading text-[clamp(1.4rem,3.5vw,2.4rem)] font-[800] text-white leading-[1.15] line-clamp-3">
+              <h2 className="font-heading text-[clamp(1.5rem,3.2vw,2.4rem)] font-[800] text-foreground leading-[1.15] group-hover:text-primary transition-colors">
                 {hero.title}
-              </h1>
+              </h2>
               {hero.subtitle && (
-                <p className="font-body text-white/75 text-[0.95rem] mt-2 line-clamp-2 max-w-xl">
+                <p className="font-body text-muted-foreground text-[1rem] mt-2 line-clamp-2 max-w-2xl">
                   {hero.subtitle}
                 </p>
               )}
-              <div className="font-ui text-[0.78rem] text-white/60 flex items-center gap-2 mt-3">
-                <span className="font-semibold text-white/90">{(hero.created_by && authorMap?.[hero.created_by]?.displayName) || "Unknown"}</span>
+              <div className="font-ui text-[0.78rem] text-muted-foreground flex items-center gap-2 mt-3">
+                <span className="font-semibold text-foreground">{(hero.created_by && authorMap?.[hero.created_by]?.displayName) || "Unknown"}</span>
                 <span>·</span>
                 <span>{new Date(hero.published_at || "").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
                 <span>·</span>
@@ -146,7 +145,7 @@ const Index = () => {
           </Link>
 
           {/* Secondary stories */}
-          <div className="lg:col-span-2 flex flex-row lg:flex-col gap-3 overflow-x-auto lg:overflow-x-visible scrollbar-hide">
+          <div className="lg:col-span-2 flex flex-row lg:flex-col gap-4 lg:gap-6 overflow-x-auto lg:overflow-x-visible scrollbar-hide">
             {secondaryPosts.map((post) => {
               const cat = categories?.find((c) => c.slug === post.category_slug);
               const img = getImage(post);
@@ -154,28 +153,32 @@ const Index = () => {
                 <Link
                   key={post.id}
                   to={`/news/${post.slug}`}
-                  className="group relative flex-shrink-0 w-[280px] lg:w-auto overflow-hidden rounded-lg lg:flex-1 min-h-[150px]"
+                  className="group flex-shrink-0 w-[280px] lg:w-auto flex flex-col lg:flex-1"
                 >
-                  {img ? (
-                    <img
-                      src={img}
-                      alt={post.title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0"
-                      style={{ backgroundColor: cat?.color ? `${cat.color}20` : "hsl(var(--muted))" }}
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
-                  <div className="absolute inset-0 flex flex-col justify-end p-4">
+                  <div className="relative overflow-hidden rounded-lg aspect-[16/9] bg-muted">
+                    {img ? (
+                      <img
+                        src={img}
+                        alt={post.title}
+                        className="absolute inset-0 w-full h-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
+                      />
+                    ) : (
+                      <div
+                        className="absolute inset-0"
+                        style={{ backgroundColor: cat?.color ? `${cat.color}20` : "hsl(var(--muted))" }}
+                      />
+                    )}
+                  </div>
+                  <div className="pt-3">
                     {cat && (
-                      <span className="font-ui text-[0.7rem] font-semibold uppercase tracking-wide text-white/70 mb-1">
+                      <span
+                        className="font-ui text-[0.7rem] font-semibold uppercase tracking-wide mb-1 inline-block"
+                        style={{ color: cat.color }}
+                      >
                         {cat.name}
                       </span>
                     )}
-                    <h3 className="font-heading text-[1.15rem] font-bold text-white leading-tight line-clamp-2">
+                    <h3 className="font-heading text-[1.05rem] font-bold text-foreground leading-tight line-clamp-2 group-hover:text-primary transition-colors">
                       {post.title}
                     </h3>
                   </div>
