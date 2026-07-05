@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { getIconByName } from "@/lib/icons";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { format } from "date-fns";
+import { de as deLocale, enUS as enLocale } from "date-fns/locale";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ArticleThumbnail from "@/components/ArticleThumbnail";
@@ -13,7 +15,7 @@ import { getYouTubeThumbnail } from "@/lib/videoUtils";
 import { toAbsoluteUrl } from "@/lib/imageUrl";
 
 const Index = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data: posts, isLoading: postsLoading } = usePosts();
   const { data: categories, isLoading: catsLoading } = useCategories();
 
@@ -80,12 +82,79 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      {/* ── Headline ── */}
-      <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-12 md:pt-16 pb-2 text-center">
-        <h1 className="font-heading text-4xl sm:text-5xl font-bold text-foreground">
-          {t("newsListing.title")}
-        </h1>
-      </section>
+      {/* ── Editorial Masthead ── */}
+      {(() => {
+        const locale = i18n.language?.startsWith("de") ? deLocale : enLocale;
+        const dateStr = format(new Date(), "EEE, dd MMM yyyy", { locale }).toUpperCase();
+        const issueNo = String(posts?.length ?? 0).padStart(3, "0");
+        const topCats = Object.entries(categoryCounts)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([slug]) => categories?.find((c) => c.slug === slug))
+          .filter(Boolean) as NonNullable<typeof categories>;
+        return (
+          <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-10 md:pt-14 pb-6 md:pb-10">
+            <header className="w-full border-b border-foreground/80 pb-6 md:pb-10 animate-in fade-in duration-700">
+              {/* Top meta row */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 md:mb-12">
+                <div className="flex flex-col gap-1">
+                  <span className="font-ui text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase text-foreground">
+                    {t("home.masthead.established")}
+                  </span>
+                  <p className="font-ui text-xs md:text-sm max-w-xs text-muted-foreground leading-tight tracking-[0.15em] uppercase">
+                    {t("home.masthead.tagline")}
+                  </p>
+                </div>
+                <div className="md:text-right">
+                  <span className="font-ui text-[10px] md:text-xs font-medium tracking-[0.25em] uppercase text-foreground border border-foreground/80 px-2.5 py-1">
+                    {t("home.masthead.issue", { n: issueNo })}
+                  </span>
+                </div>
+              </div>
+
+              {/* Wordmark */}
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <h1 className="font-heading text-[14vw] md:text-[11vw] lg:text-[160px] leading-[0.85] font-bold tracking-tighter text-foreground uppercase flex flex-col">
+                  <span className="block">{t("home.masthead.line1")}</span>
+                  <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-4 md:gap-10">
+                    <span className="block">
+                      MEDIA{" "}
+                      <span
+                        aria-hidden="true"
+                        style={{ WebkitTextStroke: "1px currentColor", color: "transparent" }}
+                      >
+                        &amp;
+                      </span>{" "}
+                      TV
+                    </span>
+                    <span className="font-ui text-sm md:text-base font-normal tracking-normal normal-case max-w-sm md:max-w-md md:mb-3 lg:mb-6 text-muted-foreground leading-snug">
+                      {t("home.masthead.descriptor")}
+                    </span>
+                  </div>
+                </h1>
+              </div>
+
+              {/* Bottom meta row */}
+              <div className="mt-8 md:mt-14 flex flex-wrap gap-4 justify-between items-center border-t border-foreground/10 pt-4">
+                <nav className="flex flex-wrap gap-6 md:gap-8 font-ui text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold">
+                  {topCats.map((cat) => (
+                    <Link
+                      key={cat.slug}
+                      to={`/news?kategorie=${cat.slug}`}
+                      className="text-foreground hover:opacity-60 transition-opacity"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="font-ui text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold text-muted-foreground">
+                  {dateStr}
+                </div>
+              </div>
+            </header>
+          </section>
+        );
+      })()}
 
       {/* ── Hero Section ── */}
       <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-4 md:pt-6">
