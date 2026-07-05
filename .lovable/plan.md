@@ -1,45 +1,20 @@
-# Footer Redesign – Sophisticated Editorial Grid
-
 ## Ziel
-Der Footer wird nach dem gewählten Prototyp v2 neu gebaut: großzügiges 12-Spalten-Grid, klare typografische Hierarchie, Disclaimer als integrierte Editorial-Karte statt grauer Anhang.
+Den über die Editor-Toolbar eingefügten CTA-Button (`a.freigeist-cta`) im Artikelbody um 15% vergrößern — sowohl im Editor als auch in der veröffentlichten Ansicht.
 
-## Struktur (nur `src/components/Footer.tsx`)
+## Änderung
+Nur `src/index.css`, Regelblock `.freigeist-cta` (Zeile 714–733). Werte werden proportional um ~15% erhöht:
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  BRAND (5 cols)          │  NAV COLUMNS (7 cols, 2-3 spalt.)│
-│  Logo + Tagline          │  Navigation │ Rechtliches       │
-├────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │ • TRANSPARENZHINWEIS / DISCLAIMER                    │ │
-│  │   (6 Absätze in eleganter Karte,                     │ │
-│  │    max-w-4xl, weicher Background, subtile Border)    │ │
-│  └──────────────────────────────────────────────────────┘ │
-├────────────────────────────────────────────────────────────┤
-│  © 2026 …                                    (rechts frei) │
-└────────────────────────────────────────────────────────────┘
-```
+| Property | Vorher | Nachher (+15%) |
+|---|---|---|
+| `font-size` | `15px` | `17px` |
+| `padding` | `0.875rem 2rem` | `1.006rem 2.3rem` |
+| `border-radius` | `0.5rem` | `0.575rem` |
+| `box-shadow` y/blur | `0 4px 12px` | `0 5px 14px` |
 
-## Was sich ändert
-- Layout auf `grid-cols-12` mit Brand-Block (col-span-5) + Nav-Bereich (col-span-7, innen 2 Spalten für Navigation und Rechtliches — keine dritte Dummy-Spalte, da wir keine „Unternehmen"-Sektion haben)
-- Deutlich mehr Whitespace (`py-16 md:py-20`), größere Marken-Headline
-- Disclaimer bekommt eigene Editorial-Karte mit dezenter Border, Dot-Marker vor Headline, italic Fließtext, alle 6 Absätze bleiben wörtlich erhalten
-- Copyright rutscht in eine schmale Bottom-Bar mit `border-t`, `uppercase tracking-widest`
-- Hover-States nutzen `hover:text-foreground` statt `hover:text-primary` für ruhigeren Editorial-Look
+Hover-Shadow analog von `0 6px 20px` auf `0 7px 23px`. Farben, Gradient, Font-Weight, Hover-Scale und Zentrierungs-Regel bleiben unverändert.
 
-## Was gleich bleibt
-- Semantische Design-Tokens (`bg-muted`, `border-border`, `text-muted-foreground`, `text-foreground`) — kein Hardcoding von Stone/Slate-Farben
-- Alle bestehenden Links, i18n-Keys (`t("footer.*")`, `t("nav.*")`, `t("common.*")`)
-- Auth-Logik (Login/Logout/Admin je nach `isLoggedIn`)
-- Logo via `brand.logoSrc`, Tagline via `t("footer.tagline")`
-- Disclaimer-Text 1:1 aus aktueller Version
-- `max-w-[1600px]` Container-Breite (Core-Regel)
-- `pb-20` unten für Fixed-Bottom-Category-Nav
-
-## Technische Details
-- Keine neuen Fonts, keine neuen Packages — Prototyp-Fonts (Playfair/Inter) werden auf bestehende Projekt-Fonts gemappt (`font-heading` / `font-body`)
-- Keine Farben außerhalb der Tokens, Dark-Mode bleibt funktional
-- Keine Änderungen an Business-Logik, keine anderen Dateien
-
-## Nur betroffene Datei
-- `src/components/Footer.tsx`
+## Nicht betroffen
+- Header-CTAs ("Live Calls" / "Zugang anfragen")
+- "All News"-Button auf der Startseite
+- Toolbar-Buttons im Editor
+- `RichTextEditor.tsx` (der eingefügte HTML-Markup bleibt gleich, nur das CSS ändert sich → alte Artikel skalieren automatisch mit)
