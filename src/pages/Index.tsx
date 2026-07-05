@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { getIconByName } from "@/lib/icons";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { format } from "date-fns";
+import { de as deLocale, enUS as enLocale } from "date-fns/locale";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ArticleThumbnail from "@/components/ArticleThumbnail";
