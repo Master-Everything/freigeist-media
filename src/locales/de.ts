@@ -356,9 +356,6 @@ const de = {
   },
   "home": {
     "masthead": {
-      "established": "EST. 2005",
-      "tagline": "TECHNIK VON MORGEN",
-      "issue": "AUSGABE NR. {{n}}",
       "line1": "FREIGEIST",
       "line2": "MEDIA & TV",
       "descriptor": "Ein digitales Magazin an der Schnittstelle von Bewusstsein, Souveränität und den Technologien, die das nächste Jahrzehnt prägen."

@@ -356,9 +356,6 @@ const en = {
   },
   "home": {
     "masthead": {
-      "established": "EST. 2005",
-      "tagline": "ENGINEERING THE FUTURE",
-      "issue": "ISSUE NO. {{n}}",
       "line1": "FREIGEIST",
       "line2": "MEDIA & TV",
       "descriptor": "A digital publication at the intersection of consciousness, sovereignty and the technologies shaping the decade ahead."

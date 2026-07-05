@@ -86,7 +86,6 @@ const Index = () => {
       {(() => {
         const locale = i18n.language?.startsWith("de") ? deLocale : enLocale;
         const dateStr = format(new Date(), "EEE, dd MMM yyyy", { locale }).toUpperCase();
-        const issueNo = String(posts?.length ?? 0).padStart(3, "0");
         const topCats = Object.entries(categoryCounts)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
@@ -95,23 +94,6 @@ const Index = () => {
         return (
           <section className="max-w-[1600px] mx-auto px-6 lg:px-12 pt-10 md:pt-14 pb-6 md:pb-10">
             <header className="w-full border-b border-foreground/80 pb-6 md:pb-10 animate-in fade-in duration-700">
-              {/* Top meta row */}
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8 md:mb-12">
-                <div className="flex flex-col gap-1">
-                  <span className="font-ui text-[10px] md:text-xs font-bold tracking-[0.3em] uppercase text-foreground">
-                    {t("home.masthead.established")}
-                  </span>
-                  <p className="font-ui text-xs md:text-sm max-w-xs text-muted-foreground leading-tight tracking-[0.15em] uppercase">
-                    {t("home.masthead.tagline")}
-                  </p>
-                </div>
-                <div className="md:text-right">
-                  <span className="font-ui text-[10px] md:text-xs font-medium tracking-[0.25em] uppercase text-foreground border border-foreground/80 px-2.5 py-1">
-                    {t("home.masthead.issue", { n: issueNo })}
-                  </span>
-                </div>
-              </div>
-
               {/* Wordmark */}
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <h1 className="font-heading text-[14vw] md:text-[11vw] lg:text-[160px] leading-[0.85] font-bold tracking-tighter text-foreground uppercase flex flex-col">
