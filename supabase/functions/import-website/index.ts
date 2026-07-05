@@ -535,21 +535,46 @@ function renderFreigeistBody(scope: string): string {
     if (text.split(/\s+/).length > 6) return false;
     return true;
   };
-  let speakerPairCount = 0;
+  let speakerPairsFound = 0;
+  let speakerBoxCreated = 0;
+  let speakerImageSrc: string | null = null;
   out = out.replace(pairRe, (match, src, alt, textInner) => {
     const firstHeading = textInner.match(/<h[1-3][^>]*>[\s\S]*?<\/h[1-3]>/i);
     if (!firstHeading || !isSpeakerNameHeading(firstHeading[0])) {
       return match; // leave as-is, will be rendered by regular widget rules
+    }
+    if (!src || isIconOrPlaceholder(src)) {
+      return match; // Speaker box requires a valid image as identifier
+    }
+    speakerPairsFound++;
+    if (speakerBoxCreated >= 1) {
+      // Only one speaker box per article — fall back to normal widget rendering
+      return match;
     }
     const cleanAlt = (alt || "").replace(/"/g, "&quot;");
     let bio = textInner.replace(/<div[^>]*>/gi, "").replace(/<\/div>/gi, "");
     bio = bio.replace(/<span[^>]*>/gi, "").replace(/<\/span>/gi, "");
     const html = `<aside class="speaker-profile"><figure class="speaker-photo"><img src="${src}" alt="${cleanAlt}"></figure><div class="speaker-bio">${bio}</div></aside>`;
     speakerPlaceholders.push(html);
-    speakerPairCount++;
+    speakerBoxCreated++;
+    speakerImageSrc = src;
     return `@@SPEAKER_${speakerPlaceholders.length - 1}@@`;
   });
-  console.log(`[import-website] renderFreigeistBody: speakerPairs=${speakerPairCount}`);
+  // Dedupe: strip any other inline <img> with the same src (duplicate of the speaker photo)
+  let duplicateImageStripped = false;
+  if (speakerImageSrc) {
+    const escaped = speakerImageSrc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const dupImgRe = new RegExp(`<img[^>]+src=["']${escaped}["'][^>]*>`, "gi");
+    const before = out;
+    out = out.replace(dupImgRe, (m, offset) => {
+      // Preserve the one inside the placeholder-rendered aside — placeholders are @@SPEAKER_n@@
+      // so any remaining match is a real duplicate in the body.
+      duplicateImageStripped = true;
+      return "";
+    });
+    if (out === before) duplicateImageStripped = false;
+  }
+  console.log(`[import-website] renderFreigeistBody: speakerPairsFound=${speakerPairsFound} speakerBoxCreated=${speakerBoxCreated} duplicateImageStripped=${duplicateImageStripped}`);
 
 
   // 0b. Nested accordion (Elementor renders native <details>/<summary>). Wrap items in accordion container.
