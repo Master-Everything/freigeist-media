@@ -73,7 +73,18 @@ const NewsListing = () => {
       {/* ── Page header ── */}
       <section className="pt-16 pb-10 text-center">
           <h1 className="font-heading text-4xl sm:text-5xl font-bold text-foreground">
-            {t("newsListing.title")}
+            {(() => {
+              const title = t("newsListing.title");
+              const idx = title.indexOf("&");
+              if (idx === -1) return title;
+              return (
+                <>
+                  {title.slice(0, idx)}
+                  <span className="text-primary">&</span>
+                  {title.slice(idx + 1)}
+                </>
+              );
+            })()}
           </h1>
           <p className="mt-3 text-muted-foreground font-body text-lg max-w-xl mx-auto">
             {t("newsListing.subtitle")}
