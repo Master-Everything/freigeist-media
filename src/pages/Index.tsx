@@ -101,10 +101,7 @@ const Index = () => {
                   <div className="flex flex-col md:flex-row md:items-baseline md:justify-between gap-4 md:gap-10">
                     <span className="block">
                       MEDIA{" "}
-                      <span
-                        aria-hidden="true"
-                        style={{ WebkitTextStroke: "1px currentColor", color: "transparent" }}
-                      >
+                      <span aria-hidden="true" className="text-primary">
                         &amp;
                       </span>{" "}
                       TV
