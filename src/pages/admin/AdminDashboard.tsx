@@ -15,9 +15,9 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const { count: total } = await supabase.from("posts").select("*", { count: "exact", head: true });
-      const { count: published } = await supabase.from("posts").select("*", { count: "exact", head: true }).eq("status", "published");
-      const { count: drafts } = await supabase.from("posts").select("*", { count: "exact", head: true }).eq("status", "draft");
+      const { count: total } = await supabase.from("posts").select("*", { count: "exact", head: true }).is("deleted_at", null);
+      const { count: published } = await supabase.from("posts").select("*", { count: "exact", head: true }).eq("status", "published").is("deleted_at", null);
+      const { count: drafts } = await supabase.from("posts").select("*", { count: "exact", head: true }).eq("status", "draft").is("deleted_at", null);
       setStats({ total: total || 0, published: published || 0, drafts: drafts || 0 });
     };
     fetchStats();
