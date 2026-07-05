@@ -1091,6 +1091,7 @@ Deno.serve(async (req) => {
             image_url: featuredImageUrl,
             video_url: firstVideoUrl ? firstVideoUrl : null,
             category_slug: "Interview",
+            created_by: "6192cd40-d190-47f1-abbb-90ab15666a28",
           })
           .select("id, title, slug")
           .single();

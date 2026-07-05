@@ -1,28 +1,16 @@
 ## Ziel
-Beim Import von avis.press-Artikeln darf pro Beitrag nur **eine** Speaker-Box entstehen. Das Speaker-Bild dient als eindeutiges Erkennungsmerkmal.
-
-## Problem
-Der aktuelle Detektor in `supabase/functions/import-website/index.ts` (Funktion `renderFreigeistBody`) sucht Bild-Widget + Text-Editor-Widget mit kurzer Namens-Überschrift. Wenn ein Artikel z.B. zwei solcher Paarungen enthält (Speaker + z.B. Interviewer-Bio), entstehen zwei `<aside class="speaker-profile">`-Blöcke.
+Beim Website-Import wird Enrico Eckebrecht (`6192cd40-d190-47f1-abbb-90ab15666a28`) fest als Autor (`created_by`) gesetzt.
 
 ## Änderung
-In `renderFreigeistBody` nach dem bestehenden Speaker-Matching:
+In `supabase/functions/import-website/index.ts`, im `posts`-Insert (~Zeile 1083) ein Feld ergänzen:
 
-1. **Nur der erste Treffer wird zur Speaker-Box.**  
-   - Beim ersten gültigen Paar (Bild + Namens-Heading): normale Konvertierung zu `<aside class="speaker-profile">`.
-   - Ab dem zweiten Treffer: Match unverändert lassen (fällt zurück auf normale Widget-Rendering-Regeln — Bild bleibt als reguläres `<figure>`, Text bleibt als normaler Absatz mit Heading).
+```ts
+created_by: "6192cd40-d190-47f1-abbb-90ab15666a28",
+```
 
-2. **Bild als Identität.**  
-   - Nur Paare mit gültigem, nicht-leerem `src` (kein Icon/Placeholder — via bestehender `isIconOrPlaceholder`-Prüfung) werden als Speaker-Box erkannt.
-   - Wird eine Speaker-Box gesetzt, wird ihre `src` gespeichert; taucht dieselbe `src` später erneut inline im Body auf, wird das doppelte `<img>` entfernt (analog zur bestehenden Featured-Image-Dedup-Logik).
+Analog auch für `import-md` und `import-csv`, damit das Autorenverhalten konsistent ist? → **Nur `import-website`**, weil der User explizit den Website-Import meint. Andere Importer bleiben unverändert.
 
-3. **Logging** erweitern: `speakerPairsFound`, `speakerBoxCreated=0|1`, `duplicateImageStripped=true|false`.
+## Optional (kurz zu prüfen)
+Enricos User-ID als Konstante am Dateianfang deklarieren (z.B. `const DEFAULT_AUTHOR_ID = "6192cd40-…"`), damit die ID an einer Stelle steht.
 
-Alles andere (Elementor-Widget-Regeln, Whitelisting, Placeholder-Restore) bleibt unverändert.
-
-## Technische Details
-- Datei: `supabase/functions/import-website/index.ts`, Funktion `renderFreigeistBody` (~Zeile 516–552).
-- Flag `speakerBoxCreated` innerhalb des `out.replace(pairRe, …)`-Callbacks; nach `true` liefert der Callback für weitere Treffer den unveränderten `match` zurück.
-- Nach dem Replace: falls Speaker-Box gesetzt, `out` mit einem präzisen Regex nach weiteren `<img src="<speakerSrc>">` durchsuchen und entfernen.
-- `isIconOrPlaceholder(src)` in der Gültigkeitsprüfung mitverwenden.
-
-Keine Änderungen an DB, Editor-Extension oder Front-End nötig.
+Keine DB-Migration, keine UI-Änderung.
