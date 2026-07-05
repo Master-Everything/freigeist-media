@@ -114,7 +114,7 @@ const Index = () => {
               </div>
 
               {/* Bottom meta row */}
-              <div className="mt-8 md:mt-14 flex flex-wrap gap-4 justify-between items-center border-t border-foreground/10 pt-4">
+              <div className="mt-4 md:mt-7 flex flex-wrap gap-4 justify-between items-center border-t border-foreground/10 pt-4">
                 <nav className="flex flex-wrap gap-6 md:gap-8 font-ui text-[10px] md:text-xs tracking-[0.25em] uppercase font-bold">
                   {topCats.map((cat) => (
                     <Link
