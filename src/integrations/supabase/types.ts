@@ -150,6 +150,8 @@ export type Database = {
           published_at: string | null
           reading_time: number | null
           slug: string
+          source_engine_post_id: string | null
+          source_engine_pushed_at: string | null
           status: string | null
           subtitle: string | null
           title: string
@@ -169,6 +171,8 @@ export type Database = {
           published_at?: string | null
           reading_time?: number | null
           slug: string
+          source_engine_post_id?: string | null
+          source_engine_pushed_at?: string | null
           status?: string | null
           subtitle?: string | null
           title: string
@@ -188,6 +192,8 @@ export type Database = {
           published_at?: string | null
           reading_time?: number | null
           slug?: string
+          source_engine_post_id?: string | null
+          source_engine_pushed_at?: string | null
           status?: string | null
           subtitle?: string | null
           title?: string
