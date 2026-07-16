@@ -25,6 +25,7 @@ import AdminChangelog from "./pages/admin/AdminChangelog";
 import AdminProject from "./pages/admin/AdminProject";
 import AdminWorkSummary from "./pages/admin/AdminWorkSummary";
 import AdminEstimate from "./pages/admin/AdminEstimate";
+import AdminAufwand from "./pages/admin/AdminAufwand";
 import AdminOnboarding from "./pages/admin/AdminOnboarding";
 import AdminEditorGuide from "./pages/admin/AdminEditorGuide";
 import AdminFeedback from "./pages/admin/AdminFeedback";
@@ -77,6 +78,7 @@ const AppRoutes = () => {
         <Route path="/admin/project" element={<ProtectedRoute requiredRole="admin"><AdminProject /></ProtectedRoute>} />
         <Route path="/admin/work-summary" element={<ProtectedRoute requiredRole="admin"><AdminWorkSummary /></ProtectedRoute>} />
         <Route path="/admin/estimate" element={<ProtectedRoute requiredRole="admin"><AdminEstimate /></ProtectedRoute>} />
+        <Route path="/admin/aufwand" element={<ProtectedRoute requiredRole="admin"><AdminAufwand /></ProtectedRoute>} />
         <Route path="/admin/onboarding" element={<ProtectedRoute requiredRole="admin"><AdminOnboarding /></ProtectedRoute>} />
         <Route path="/admin/guide" element={<ProtectedRoute><AdminEditorGuide /></ProtectedRoute>} />
         <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedback /></ProtectedRoute>} />

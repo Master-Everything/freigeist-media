@@ -26,6 +26,7 @@ const de = {
     "changelog": "Changelog",
     "summary": "Zusammenfassung",
     "estimate": "Kalkulation",
+    "aufwand": "Aufwand",
     "onboarding": "Onboarding",
     "viewSite": "Seite ansehen →",
     "home": "Startseite",
