@@ -1,7 +1,11 @@
-Alle Stundenwerte in `public.time_entries` mit Faktor 1.3 multiplizieren.
+## Ziel
+Projektnamen (`brand.name` = "Freigeist Kongress") in den CSV-Export von `/admin/aufwand` einfügen — im Dateinamen und als Überschriftszeile in der Tabelle.
 
-```sql
-UPDATE public.time_entries SET hours = ROUND(hours * 1.3, 2);
-```
+## Änderungen in `src/pages/admin/AdminAufwand.tsx`
 
-Betrifft alle 38 aktuellen Einträge. Status und Blöcke bleiben unverändert.
+1. `brand` aus `@/config/brand` importieren.
+2. In `exportCsv()`:
+   - Vor der Header-Zeile eine Titelzeile einfügen: `["Aufwand – Freigeist Kongress"]` gefolgt von einer Leerzeile.
+   - Dateiname von `aufwand-YYYY-MM-DD.csv` auf `aufwand-freigeist-kongress-YYYY-MM-DD.csv` ändern (Slug aus `brand.name`: lowercase, Sonderzeichen → `-`).
+
+Keine weiteren Dateien betroffen. Keine Backend-Änderungen.
