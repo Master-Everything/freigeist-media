@@ -97,6 +97,12 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                   {t("nav.estimate")}
                 </Link>
                 <Link
+                  to="/admin/aufwand"
+                  className={`transition-colors ${location.pathname.startsWith("/admin/aufwand") ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t("nav.aufwand")}
+                </Link>
+                <Link
                   to="/admin/onboarding"
                   className={`transition-colors ${location.pathname.startsWith("/admin/onboarding") ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground"}`}
                 >

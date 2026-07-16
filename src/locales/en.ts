@@ -26,6 +26,7 @@ const en = {
     "changelog": "Changelog",
     "summary": "Summary",
     "estimate": "Estimate",
+    "aufwand": "Aufwand",
     "onboarding": "Onboarding",
     "viewSite": "View Site →",
     "home": "Home",
