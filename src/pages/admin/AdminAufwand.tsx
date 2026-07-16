@@ -127,6 +127,8 @@ export default function AdminAufwand() {
 
   const exportCsv = () => {
     const rows = [
+      [`Aufwand – ${brand.name}`],
+      [],
       ["Datum", "Block", "Aufgabe", "Notiz", "Stunden", "Netto (EUR)", "Status"],
       ...filtered.map((e) => [
         e.entry_date,
@@ -148,7 +150,7 @@ export default function AdminAufwand() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `aufwand-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `aufwand-${slugId(brand.name)}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
